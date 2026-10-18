@@ -1,0 +1,6 @@
+{
+  "name": "Quản Lý Khu Vực Thể Thao Trường Học",
+  "description": "Hệ thống quản lý thời gian mượn và trả sân bóng đá, sân pickleball, sân cầu lông và bóng bàn cho giáo viên và học sinh.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
