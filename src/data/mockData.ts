@@ -1,5 +1,5 @@
 import { VaiTro, NguoiDung, KhuVuc, DangKy } from '../types/index.ts';
-import { formatDateToVN, getThuTrongTuan } from '../utils/bookingRules.ts';
+import { formatDateToVN } from '../utils/bookingRules.ts';
 
 export const INITIAL_VAI_TRO: VaiTro[] = [
   { id: 'admin', tenVaiTro: 'Quản trị viên' },
@@ -17,37 +17,41 @@ export const INITIAL_NGUOI_DUNG: NguoiDung[] = [
     hoTen: 'Quản Trị Viên CNTT',
     trangThai: 'hoạt động',
     ngayTao: '15/08/2026',
-    soDienThoai: '0901234567',
+    soDienThoai: '0905123456',
+    email: 'admin@lequydon-nt.edu.vn',
   },
   {
-    id: 'u_bgh',
+    id: 'u_bgh_minh',
     tenDangNhap: 'bgh_minh',
     idVaiTro: 'bgh',
     matKhau: 'bgh123',
     hoTen: 'Thầy Nguyễn Văn Minh (Phó Hiệu Trưởng)',
     trangThai: 'hoạt động',
     ngayTao: '15/08/2026',
-    soDienThoai: '0912345678',
+    soDienThoai: '0913456789',
+    email: 'minhnv@lequydon-nt.edu.vn',
   },
   {
     id: 'u_gv_nam',
     tenDangNhap: 'gv_nam',
     idVaiTro: 'giao_vien',
     matKhau: 'gv123',
-    hoTen: 'Thầy Nguyễn Văn Nam (GV Thể dục)',
+    hoTen: 'Thầy Nguyễn Văn Nam (Tổ Thể dục - GDQP)',
     trangThai: 'hoạt động',
     ngayTao: '20/08/2026',
     soDienThoai: '0987654321',
+    email: 'namnv@lequydon-nt.edu.vn',
   },
   {
     id: 'u_gv_mai',
     tenDangNhap: 'gv_mai',
     idVaiTro: 'giao_vien',
     matKhau: 'gv123',
-    hoTen: 'Cô Trần Thị Mai (GV Thể chất)',
+    hoTen: 'Cô Trần Thị Mai (Tổ Thể dục - GDQP)',
     trangThai: 'hoạt động',
     ngayTao: '20/08/2026',
     soDienThoai: '0978901234',
+    email: 'maitt@lequydon-nt.edu.vn',
   },
   {
     id: 'u_hs_an',
@@ -55,7 +59,7 @@ export const INITIAL_NGUOI_DUNG: NguoiDung[] = [
     idVaiTro: 'hoc_sinh',
     matKhau: 'hs123',
     hoTen: 'Lê Văn An',
-    lop: '11A1',
+    lop: '11 Toán',
     trangThai: 'hoạt động',
     ngayTao: '05/09/2026',
     soDienThoai: '0834567890',
@@ -66,7 +70,7 @@ export const INITIAL_NGUOI_DUNG: NguoiDung[] = [
     idVaiTro: 'hoc_sinh',
     matKhau: 'hs123',
     hoTen: 'Phạm Thị Bình',
-    lop: '12A2',
+    lop: '12 Lý',
     trangThai: 'hoạt động',
     ngayTao: '05/09/2026',
     soDienThoai: '0845678901',
@@ -77,10 +81,21 @@ export const INITIAL_NGUOI_DUNG: NguoiDung[] = [
     idVaiTro: 'hoc_sinh',
     matKhau: 'hs123',
     hoTen: 'Đỗ Hoàng Dũng',
-    lop: '10A3',
+    lop: '10 Tin',
     trangThai: 'hoạt động',
     ngayTao: '06/09/2026',
     soDienThoai: '0856789012',
+  },
+  {
+    id: 'u_hs_anh',
+    tenDangNhap: 'hs_anh',
+    idVaiTro: 'hoc_sinh',
+    matKhau: 'hs123',
+    hoTen: 'Nguyễn Quỳnh Anh',
+    lop: '11 Anh 1',
+    trangThai: 'hoạt động',
+    ngayTao: '06/09/2026',
+    soDienThoai: '0867890123',
   },
 ];
 
@@ -90,8 +105,8 @@ export const INITIAL_KHU_VUC: KhuVuc[] = [
     tenKhuVuc: 'Sân bóng đá',
     giaThueGio: 150000,
     trangThai: 'hoạt động',
-    moTa: 'Sân cỏ nhân tạo chất lượng cao 7 người, hệ thống chiếu sáng ban đêm tiêu chuẩn thi đấu.',
-    viTri: 'Khu A - Phía sau dãy phòng học đa năng',
+    moTa: 'Sân cỏ nhân tạo 7 người chất lượng cao của trường, dàn đèn LED chiếu sáng đêm tiêu chuẩn.',
+    viTri: 'Khu A - Sau nhà hiệu bộ THPT chuyên Lê Quý Đôn',
     hinhAnh: '/src/assets/images/facility_football_pitch_1792291598957.jpg',
   },
   {
@@ -99,8 +114,8 @@ export const INITIAL_KHU_VUC: KhuVuc[] = [
     tenKhuVuc: 'Sân Pickleball',
     giaThueGio: 80000,
     trangThai: 'hoạt động',
-    moTa: 'Mặt sân phủ sơn Acrylic chống trơn trượt tiêu chuẩn thi đấu môn Pickleball mới nhất.',
-    viTri: 'Khu B - Cạnh nhà tập bóng rổ',
+    moTa: 'Sân Pickleball mới lát sơn Acrylic tiêu chuẩn thi đấu cho giáo viên và học sinh trường.',
+    viTri: 'Khu B - Phía đông sân thể thao ngoài trời',
     hinhAnh: '/src/assets/images/facility_pickleball_court_1792291599694.jpg',
   },
   {
@@ -108,8 +123,8 @@ export const INITIAL_KHU_VUC: KhuVuc[] = [
     tenKhuVuc: 'Sân cầu lông',
     giaThueGio: 60000,
     trangThai: 'hoạt động',
-    moTa: 'Sàn gỗ chuyên dụng trong nhà thể thao đa năng, kín gió, đèn chống lóa.',
-    viTri: 'Nhà thi đấu thể dục thể thao tầng 1',
+    moTa: 'Sàn gỗ chuyên dụng trong nhà thi đấu đa năng của trường, chống trơn trượt, đèn chống lóa.',
+    viTri: 'Nhà thi đấu đa năng tầng 1',
     hinhAnh: '/src/assets/images/facility_badminton_court_1792291600254.jpg',
   },
   {
@@ -117,13 +132,12 @@ export const INITIAL_KHU_VUC: KhuVuc[] = [
     tenKhuVuc: 'Khu vực chơi bóng bàn',
     giaThueGio: 40000,
     trangThai: 'hoạt động',
-    moTa: 'Phòng 4 bàn bóng bàn tiêu chuẩn kèm vợt và bóng tập luyện, có quạt thông gió thoáng mát.',
-    viTri: 'Nhà thi đấu thể dục thể thao tầng 2',
+    moTa: 'Phòng tập bóng bàn 4 bàn thi đấu Double Fish tiêu chuẩn, thông gió thoáng mát.',
+    viTri: 'Nhà thi đấu đa năng tầng 2',
     hinhAnh: '/src/assets/images/facility_table_tennis_1792291599618.jpg',
   },
 ];
 
-// Helper to generate dynamic dates relative to current date (e.g. today, this week)
 export function generateInitialBookings(): DangKy[] {
   const now = new Date();
 
@@ -152,7 +166,7 @@ export function generateInitialBookings(): DangKy[] {
   sunday.setDate(monday.getDate() + 6);
 
   return [
-    // Thứ 2: GV Nam dạy bóng đá buổi sáng tiết 1, 2
+    // Thứ 2: Thầy Nam dạy thể dục bóng đá cho lớp 11 Toán buổi sáng tiết 1, 2
     {
       id: 'bk_001',
       idNguoiDung: 'u_gv_nam',
@@ -161,9 +175,10 @@ export function generateInitialBookings(): DangKy[] {
       thu: 'Thứ 2',
       buoi: 'sáng',
       tiet: 1,
+      lop: '11 Toán',
       trangThai: 'đã trả',
       thoiGianTra: `07:50 ${formatDateToVN(monday)}`,
-      mucDichSuDung: 'Dạy thể dục kỹ thuật chuyền bóng lớp 11A1',
+      mucDichSuDung: 'Dạy thể dục kỹ thuật chuyền bóng lớp 11 Toán',
       tongTien: 0,
     },
     {
@@ -174,12 +189,13 @@ export function generateInitialBookings(): DangKy[] {
       thu: 'Thứ 2',
       buoi: 'sáng',
       tiet: 2,
+      lop: '11 Lý',
       trangThai: 'đã trả',
       thoiGianTra: `08:40 ${formatDateToVN(monday)}`,
-      mucDichSuDung: 'Dạy thể dục kỹ thuật chuyền bóng lớp 11A2',
+      mucDichSuDung: 'Dạy thể dục kỹ thuật dẫn bóng lớp 11 Lý',
       tongTien: 0,
     },
-    // Thứ 2: Cô Mai dạy cầu lông buổi sáng tiết 3
+    // Thứ 2: Cô Mai dạy cầu lông cho lớp 12 Anh 1
     {
       id: 'bk_003',
       idNguoiDung: 'u_gv_mai',
@@ -188,12 +204,13 @@ export function generateInitialBookings(): DangKy[] {
       thu: 'Thứ 2',
       buoi: 'sáng',
       tiet: 3,
+      lop: '12 Anh 1',
       trangThai: 'đã trả',
       thoiGianTra: `09:40 ${formatDateToVN(monday)}`,
-      mucDichSuDung: 'Dạy kỹ thuật đập cầu lớp 12A2',
+      mucDichSuDung: 'Dạy kỹ thuật đập cầu lớp 12 Anh 1',
       tongTien: 0,
     },
-    // Thứ 3: GV Nam dạy bóng bàn buổi chiều tiết 2
+    // Thứ 3: Thầy Nam dạy bóng bàn cho lớp 10 Tin
     {
       id: 'bk_004',
       idNguoiDung: 'u_gv_nam',
@@ -202,12 +219,13 @@ export function generateInitialBookings(): DangKy[] {
       thu: 'Thứ 3',
       buoi: 'chiều',
       tiet: 2,
+      lop: '10 Tin',
       trangThai: 'đã trả',
       thoiGianTra: `14:40 ${formatDateToVN(tuesday)}`,
-      mucDichSuDung: 'Kiểm tra đánh bóng bàn lớp 10A3',
+      mucDichSuDung: 'Kiểm tra đánh bóng bàn lớp 10 Tin',
       tongTien: 0,
     },
-    // Thứ 4: Cô Mai mượn sân Pickleball buổi sáng tiết 4
+    // Thứ 4: Cô Mai mượn sân Pickleball cho lớp 10 Văn
     {
       id: 'bk_005',
       idNguoiDung: 'u_gv_mai',
@@ -216,12 +234,13 @@ export function generateInitialBookings(): DangKy[] {
       thu: 'Thứ 4',
       buoi: 'sáng',
       tiet: 4,
+      lop: '10 Văn',
       trangThai: 'đã đăng ký',
       thoiGianTra: null,
-      mucDichSuDung: 'Lớp chuyên đề thể thao tự chọn môn Pickleball',
+      mucDichSuDung: 'Chuyên đề tự chọn thể thao môn Pickleball',
       tongTien: 0,
     },
-    // Thứ 5: GV Nam mượn sân bóng đá buổi chiều tiết 3, 4
+    // Thứ 5: Thầy Nam mượn sân bóng đá cho lớp 12 Hóa
     {
       id: 'bk_006',
       idNguoiDung: 'u_gv_nam',
@@ -230,12 +249,13 @@ export function generateInitialBookings(): DangKy[] {
       thu: 'Thứ 5',
       buoi: 'chiều',
       tiet: 3,
+      lop: '12 Hóa',
       trangThai: 'đang sử dụng',
       thoiGianTra: null,
-      mucDichSuDung: 'Đội tuyển bóng đá trường tập luyện chuẩn bị giải Quận',
+      mucDichSuDung: 'Đội tuyển thể thao trường luyện tập thi đấu giải ngành',
       tongTien: 0,
     },
-    // Thứ 6: Cô Mai mượn sân cầu lông tiết 2 buổi sáng
+    // Thứ 6: Cô Mai mượn sân cầu lông cho lớp 10 Sinh
     {
       id: 'bk_007',
       idNguoiDung: 'u_gv_mai',
@@ -244,65 +264,70 @@ export function generateInitialBookings(): DangKy[] {
       thu: 'Thứ 6',
       buoi: 'sáng',
       tiet: 2,
+      lop: '10 Sinh',
       trangThai: 'đã đăng ký',
       thoiGianTra: null,
-      mucDichSuDung: 'Học thể dục khối 10 tiết giao lưu',
+      mucDichSuDung: 'Giáo dục thể chất học kỳ môn Cầu lông',
       tongTien: 0,
     },
-    // Thứ 7: Học sinh An thuê sân bóng đá 08:00 - 10:00 (2 tiếng = 300.000đ)
+    // Thứ 7: Học sinh Lê Văn An (11 Toán) thuê sân bóng đá
     {
       id: 'bk_008',
       idNguoiDung: 'u_hs_an',
       idKhuVuc: 'kv_bong_da',
       ngaySuDung: formatDateToVN(saturday),
       thu: 'Thứ 7',
+      lop: '11 Toán',
       gioBatDau: '08:00',
       gioKetThuc: '10:00',
       trangThai: 'đã đăng ký',
       thoiGianTra: null,
-      mucDichSuDung: 'Giao lưu bóng đá lớp 11A1 và 11A2',
+      mucDichSuDung: 'Giao lưu bóng đá khối 11 chuyên Toán và chuyên Lý',
       tongTien: 300000,
     },
-    // Thứ 7: Học sinh Bình thuê sân Pickleball 15:00 - 17:00 (2 tiếng = 160.000đ)
+    // Thứ 7: Học sinh Phạm Thị Bình (12 Lý) thuê sân Pickleball
     {
       id: 'bk_009',
       idNguoiDung: 'u_hs_binh',
       idKhuVuc: 'kv_pickleball',
       ngaySuDung: formatDateToVN(saturday),
       thu: 'Thứ 7',
+      lop: '12 Lý',
       gioBatDau: '15:00',
       gioKetThuc: '17:00',
       trangThai: 'đã đăng ký',
       thoiGianTra: null,
-      mucDichSuDung: 'Tập luyện câu lạc bộ Pickleball học sinh',
+      mucDichSuDung: 'CLB Pickleball học sinh tập luyện rèn sức khỏe',
       tongTien: 160000,
     },
-    // Chủ nhật: Học sinh Dũng thuê bàn bóng bàn 09:00 - 11:00 (2 tiếng = 80.000đ)
+    // Chủ nhật: Học sinh Đỗ Hoàng Dũng (10 Tin) thuê phòng bóng bàn
     {
       id: 'bk_010',
       idNguoiDung: 'u_hs_dung',
       idKhuVuc: 'kv_bong_ban',
       ngaySuDung: formatDateToVN(sunday),
       thu: 'Chủ nhật',
+      lop: '10 Tin',
       gioBatDau: '09:00',
       gioKetThuc: '11:00',
       trangThai: 'đã đăng ký',
       thoiGianTra: null,
-      mucDichSuDung: 'Học sinh tập bóng bàn giải trí cuối tuần',
+      mucDichSuDung: 'Học sinh tập bóng bàn giải trí sau giờ học',
       tongTien: 80000,
     },
-    // Chủ nhật: Học sinh An thuê sân cầu lông 16:00 - 18:00 (2 tiếng = 120.000đ)
+    // Chủ nhật: Học sinh Nguyễn Quỳnh Anh (11 Anh 1) thuê sân cầu lông
     {
       id: 'bk_011',
-      idNguoiDung: 'u_hs_an',
+      idNguoiDung: 'u_hs_anh',
       idKhuVuc: 'kv_cau_long',
       ngaySuDung: formatDateToVN(sunday),
       thu: 'Chủ nhật',
+      lop: '11 Anh 1',
       gioBatDau: '16:00',
       gioKetThuc: '18:00',
       trangThai: 'đã đăng ký',
       thoiGianTra: null,
-      mucDichSuDung: 'CLB cầu lông học sinh rèn luyện thể lực',
+      mucDichSuDung: 'Rèn luyện thể lực cuối tuần cùng các bạn trong lớp',
       tongTien: 120000,
     },
   ];

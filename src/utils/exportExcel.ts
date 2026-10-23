@@ -36,7 +36,7 @@ export function exportToExcelFile(
           : user?.idVaiTro === 'giao_vien'
           ? 'Giáo viên'
           : 'Học sinh',
-      'Lớp': user?.lop || '-',
+      'Lớp Sử Dụng': b.lop || user?.lop || '-',
       'Khu Vực Thể Thao': area?.tenKhuVuc || 'Chưa rõ',
       'Ngày Sử Dụng': b.ngaySuDung,
       'Thứ': b.thu,

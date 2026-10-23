@@ -1,5 +1,7 @@
 /**
- * Database schema and types based on user requirements:
+ * Database schema and types for:
+ * Hệ thống quản lý khu vực thể thao của Trường THPT chuyên Lê Quý Đôn – Nam Nha Trang.
+ *
  * 1. vaiTro
  * 2. nguoiDung
  * 3. khuVuc
@@ -21,10 +23,11 @@ export interface NguoiDung {
   idVaiTro: VaiTroId;
   matKhau: string;
   hoTen: string;
-  lop?: string; // Dành cho học sinh (để trống với vai trò khác)
+  lop?: string; // Lớp của học sinh (khối 10, 11, 12: Toán, Lý, Hóa, Sinh, Tin, Anh 1, Anh 2, Văn); để trống với vai trò khác
   trangThai: TrangThaiNguoiDung;
   ngayTao: string; // dd/mm/yyyy
   soDienThoai?: string;
+  email?: string;
 }
 
 export type TrangThaiKhuVuc = 'hoạt động' | 'bảo trì' | 'ngừng sử dụng';
@@ -52,15 +55,16 @@ export interface DangKy {
   thu: ThuTrongTuan;
   buoi?: BuoiTrongNgay; // sáng, chiều (cho T2 - T6)
   tiet?: TietHoc; // 1, 2, 3, 4, 5 (cho giáo viên T2 - T6)
+  lop?: string; // Lớp sử dụng (khối 10, 11, 12: Toán, Lý, Hóa, Sinh, Tin, Anh 1, Anh 2, Văn) - giáo viên chọn khi đăng ký theo tiết hoặc lấy từ tài khoản HS
   gioBatDau?: string; // HH:mm (cho học sinh T7, CN)
   gioKetThuc?: string; // HH:mm (cho học sinh T7, CN)
   trangThai: TrangThaiDangKy;
   thoiGianTra?: string | null; // Thời điểm thực tế trả khu vực (VD: "10:35 18/10/2026")
-  mucDichSuDung?: string; // VD: Giảng dạy môn Bóng đá lớp 11A1, Tập luyện giao hữu
+  mucDichSuDung?: string; // VD: Giảng dạy môn Bóng đá lớp 11 Toán, Tập luyện giải đấu
   tongTien?: number; // Giá thuê tính theo giờ cho học sinh
 }
 
-// Statistical aggregates
+// Aggregated statistical summaries
 export interface ThongKeKhuVuc {
   idKhuVuc: string;
   tenKhuVuc: string;

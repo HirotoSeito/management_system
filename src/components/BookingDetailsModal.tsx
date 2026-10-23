@@ -19,7 +19,7 @@ interface BookingDetailsModalProps {
   onClose: () => void;
   areas: KhuVuc[];
   users: NguoiDung[];
-  currentUser: NguoiDung;
+  currentUser: NguoiDung | null;
   onReturnArea?: (bookingId: string) => void;
 }
 
@@ -35,8 +35,8 @@ export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
 
   const area = areas.find((a) => a.id === booking.idKhuVuc);
   const borrower = users.find((u) => u.id === booking.idNguoiDung);
-  const isOwner = borrower?.id === currentUser.id;
-  const isAdminOrBgh = currentUser.idVaiTro === 'admin' || currentUser.idVaiTro === 'bgh';
+  const isOwner = currentUser ? borrower?.id === currentUser.id : false;
+  const isAdminOrBgh = currentUser ? (currentUser.idVaiTro === 'admin' || currentUser.idVaiTro === 'bgh') : false;
   const canReturn = (isOwner || isAdminOrBgh) && booking.trangThai === 'đang sử dụng';
 
   let timeDetails = '';
@@ -114,6 +114,19 @@ export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
               {timeDetails}
             </span>
           </div>
+
+          {/* Class information */}
+          {(booking.lop || borrower?.lop) && (
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <span className="text-slate-500 flex items-center gap-1.5 font-medium">
+                <GraduationCap className="w-3.5 h-3.5 text-slate-400" />
+                Lớp sử dụng:
+              </span>
+              <span className="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                {booking.lop || borrower?.lop} (THPT Chuyên Lê Quý Đôn)
+              </span>
+            </div>
+          )}
 
           {/* Borrower */}
           <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">

@@ -8,13 +8,13 @@ import {
   isCuoiTuan,
   TIET_HOC_INFO,
 } from '../utils/bookingRules.ts';
-import { Calendar, Filter, Clock, CheckCircle2, User, AlertCircle, Plus, Info } from 'lucide-react';
+import { Calendar, Filter, Clock, CheckCircle2, User, AlertCircle, Plus, Info, GraduationCap } from 'lucide-react';
 
 interface ScheduleMatrixProps {
   areas: KhuVuc[];
   bookings: DangKy[];
   users: NguoiDung[];
-  currentUser: NguoiDung;
+  currentUser: NguoiDung | null;
   onOpenBooking: (prefill?: Partial<DangKy>) => void;
   onViewBookingDetails: (booking: DangKy) => void;
 }
@@ -42,7 +42,6 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   const selectedThu = getThuTrongTuan(selectedDateVN);
   const isWeekend = isCuoiTuan(selectedThu);
 
-  // Quick jump helpers
   const handleQuickDate = (offsetDays: number) => {
     const target = new Date();
     target.setDate(target.getDate() + offsetDays);
@@ -54,35 +53,32 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
 
   const userMap = new Map(users.map((u) => [u.id, u]));
 
-  // Filter facilities
   const displayedAreas = areas.filter((a) => {
     if (selectedAreaId !== 'all' && a.id !== selectedAreaId) return false;
     return true;
   });
 
-  // Filter bookings on this exact date
   const bookingsOnDate = bookings.filter(
     (b) => b.ngaySuDung === selectedDateVN && b.trangThai !== 'đã hủy'
   );
 
-  // Status badge helper
   const renderStatusBadge = (status: DangKy['trangThai']) => {
     switch (status) {
       case 'đã đăng ký':
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
             <Clock className="w-3 h-3" /> Đã đăng ký
           </span>
         );
       case 'đang sử dụng':
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span> Đang sử dụng
           </span>
         );
       case 'đã trả':
         return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
             <CheckCircle2 className="w-3 h-3" /> Đã trả
           </span>
         );
@@ -98,17 +94,18 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold text-slate-900 tracking-tight">
+              <h2 className="text-xl font-bold text-slate-900 tracking-tight">
                 Lịch Sử Dụng Khu Vực Thể Thao
-              </h1>
+              </h2>
               <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
                 {selectedThu}, {selectedDateVN}
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-1">
+              Trường THPT Chuyên Lê Quý Đôn – Nam Nha Trang ·{' '}
               {isWeekend
-                ? 'Cuối tuần (Thứ 7 & Chủ nhật): Học sinh thuê theo giờ để vui chơi, thể thao.'
-                : 'Ngày trong tuần (Thứ 2 - Thứ 6): Giáo viên mượn và trả theo tiết học để dạy học.'}
+                ? 'Thứ 7 & Chủ nhật: Học sinh thuê theo giờ để vui chơi, thể thao.'
+                : 'Thứ 2 - Thứ 6: Giáo viên mượn và trả theo tiết học để dạy học theo lớp.'}
             </p>
           </div>
 
@@ -134,14 +131,12 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
             <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
               Chọn ngày xem lịch
             </label>
-            <div className="relative">
-              <input
-                type="date"
-                value={selectedDateIso}
-                onChange={(e) => setSelectedDateIso(e.target.value)}
-                className="w-full text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-              />
-            </div>
+            <input
+              type="date"
+              value={selectedDateIso}
+              onChange={(e) => setSelectedDateIso(e.target.value)}
+              className="w-full text-xs font-medium border border-slate-300 rounded-lg px-3 py-2 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+            />
           </div>
 
           {/* Quick Dates */}
@@ -205,7 +200,7 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                   onClick={() => setSelectedSessionFilter('all')}
                   className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
                     selectedSessionFilter === 'all'
-                      ? 'bg-white text-slate-900 shadow-xs'
+                      ? 'bg-white text-slate-900 shadow-xs font-bold'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
@@ -216,22 +211,22 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                   onClick={() => setSelectedSessionFilter('sáng')}
                   className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
                     selectedSessionFilter === 'sáng'
-                      ? 'bg-white text-slate-900 shadow-xs'
+                      ? 'bg-white text-slate-900 shadow-xs font-bold'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  Sáng (Tiết 1-5)
+                  Sáng
                 </button>
                 <button
                   type="button"
                   onClick={() => setSelectedSessionFilter('chiều')}
                   className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${
                     selectedSessionFilter === 'chiều'
-                      ? 'bg-white text-slate-900 shadow-xs'
+                      ? 'bg-white text-slate-900 shadow-xs font-bold'
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  Chiều (Tiết 1-5)
+                  Chiều
                 </button>
               </div>
             </div>
@@ -240,14 +235,14 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
 
         {/* Legend */}
         <div className="mt-3 pt-3 border-t border-slate-100 flex flex-wrap items-center gap-4 text-xs text-slate-500">
-          <span className="font-semibold text-slate-700">Chú thích trạng thái:</span>
+          <span className="font-semibold text-slate-700">Trạng thái:</span>
           <span className="inline-flex items-center gap-1.5">
             <span className="w-3 h-3 rounded bg-emerald-50 border border-emerald-300"></span>
             Còn trống (Có thể đăng ký)
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="w-3 h-3 rounded bg-amber-50 border border-amber-300"></span>
-            Đã đăng ký mượn/thuê
+            Đã đăng ký
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="w-3 h-3 rounded bg-blue-50 border border-blue-300"></span>
@@ -273,12 +268,12 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
               <div className="bg-slate-50/80 px-5 py-3 border-b border-slate-200 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                  <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
                     Buổi Sáng — Tiết Học 1 Đến 5 (07:00 - 11:15)
-                  </h2>
+                  </h3>
                 </div>
                 <span className="text-xs text-slate-500">
-                  Dành cho giáo viên giảng dạy chính khóa
+                  Giáo viên bộ môn dạy học chính khóa
                 </span>
               </div>
 
@@ -288,11 +283,11 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                     <tr className="border-b border-slate-200 bg-slate-50/40 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                       <th className="py-3 px-4 w-36 border-r border-slate-200">Tiết học / Giờ</th>
                       {displayedAreas.map((area) => (
-                        <th key={area.id} className="py-3 px-4 min-w-[220px] border-r border-slate-200 last:border-r-0">
+                        <th key={area.id} className="py-3 px-4 min-w-[230px] border-r border-slate-200 last:border-r-0">
                           <div className="flex items-center justify-between gap-1">
                             <span className="text-slate-900 font-bold">{area.tenKhuVuc}</span>
                             {area.trangThai === 'bảo trì' ? (
-                              <span className="text-[10px] text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                              <span className="text-[10px] text-rose-800 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
                                 Bảo trì
                               </span>
                             ) : area.trangThai === 'ngừng sử dụng' ? (
@@ -300,7 +295,7 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                                 Ngừng
                               </span>
                             ) : (
-                              <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                              <span className="text-[10px] text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
                                 Hoạt động
                               </span>
                             )}
@@ -322,7 +317,6 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                           </td>
 
                           {displayedAreas.map((area) => {
-                            // Find booking
                             const slotBooking = bookingsOnDate.find(
                               (b) => b.idKhuVuc === area.id && b.buoi === 'sáng' && Number(b.tiet) === tiet
                             );
@@ -345,7 +339,9 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                             }
 
                             if (slotBooking) {
-                              const isMyBooking = slotBooking.idNguoiDung === currentUser.id;
+                              const isMyBooking = currentUser ? slotBooking.idNguoiDung === currentUser.id : false;
+                              const lopHoc = slotBooking.lop || (user?.lop ? user.lop : '');
+
                               return (
                                 <td
                                   key={area.id}
@@ -355,24 +351,33 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                                     onClick={() => onViewBookingDetails(slotBooking)}
                                     className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all hover:shadow-xs ${
                                       slotBooking.trangThai === 'đang sử dụng'
-                                        ? 'bg-blue-50/60 border-blue-200'
+                                        ? 'bg-blue-50/70 border-blue-200'
                                         : slotBooking.trangThai === 'đã trả'
                                         ? 'bg-slate-50 border-slate-200 opacity-80'
-                                        : 'bg-amber-50/60 border-amber-200'
+                                        : 'bg-amber-50/70 border-amber-200'
                                     }`}
                                   >
                                     <div className="flex items-center justify-between gap-1 mb-1">
-                                      <div className="font-semibold text-slate-900 truncate">
-                                        {user?.hoTen || 'Giáo viên bộ môn'}
+                                      <div className="font-bold text-slate-900 truncate">
+                                        {user?.hoTen || 'Giáo viên'}
                                       </div>
                                       {renderStatusBadge(slotBooking.trangThai)}
                                     </div>
-                                    <div className="text-[11px] text-slate-600 line-clamp-1">
-                                      {slotBooking.mucDichSuDung || 'Dạy học bộ môn'}
+
+                                    {/* Class information */}
+                                    {lopHoc && (
+                                      <div className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-100/70 px-1.5 py-0.5 rounded my-0.5">
+                                        <GraduationCap className="w-3 h-3" />
+                                        Lớp {lopHoc}
+                                      </div>
+                                    )}
+
+                                    <div className="text-[11px] text-slate-600 line-clamp-1 mt-0.5">
+                                      {slotBooking.mucDichSuDung || 'Giảng dạy thể dục'}
                                     </div>
                                     {isMyBooking && (
-                                      <div className="mt-1.5 text-[10px] font-semibold text-emerald-700 bg-emerald-100/60 px-1.5 py-0.5 rounded inline-block">
-                                        Lượt đăng ký của bạn
+                                      <div className="mt-1 text-[10px] font-semibold text-emerald-700 bg-white px-1.5 py-0.5 rounded border border-emerald-200 inline-block">
+                                        Lịch của bạn
                                       </div>
                                     )}
                                   </div>
@@ -397,13 +402,13 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                                       tiet: tiet,
                                     })
                                   }
-                                  className="w-full h-full min-h-[58px] p-2 rounded-lg border border-dashed border-emerald-200 bg-emerald-50/20 hover:bg-emerald-50 hover:border-emerald-400 transition-colors flex flex-col items-center justify-center text-center text-emerald-700"
+                                  className="w-full h-full min-h-[64px] p-2 rounded-lg border border-dashed border-emerald-300 bg-emerald-50/20 hover:bg-emerald-50 hover:border-emerald-500 transition-colors flex flex-col items-center justify-center text-center text-emerald-700"
                                 >
                                   <span className="text-[11px] font-semibold flex items-center gap-1">
                                     <Plus className="w-3 h-3" /> Còn trống
                                   </span>
                                   <span className="text-[10px] text-emerald-600/80">
-                                    Bấm để mượn tiết {tiet}
+                                    Bấm mượn tiết {tiet}
                                   </span>
                                 </button>
                               </td>
@@ -418,18 +423,18 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
             </div>
           )}
 
-          {/* Afternoon Session (Tiết 1 - 5 Chiều) */}
+          {/* Afternoon Session */}
           {(selectedSessionFilter === 'all' || selectedSessionFilter === 'chiều') && (
             <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
               <div className="bg-slate-50/80 px-5 py-3 border-b border-slate-200 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                  <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
                     Buổi Chiều — Tiết Học 1 Đến 5 (13:00 - 17:15)
-                  </h2>
+                  </h3>
                 </div>
                 <span className="text-xs text-slate-500">
-                  Dành cho giáo viên giảng dạy ca chiều & đội tuyển
+                  Giáo viên bộ môn dạy ca chiều
                 </span>
               </div>
 
@@ -439,11 +444,11 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                     <tr className="border-b border-slate-200 bg-slate-50/40 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
                       <th className="py-3 px-4 w-36 border-r border-slate-200">Tiết học / Giờ</th>
                       {displayedAreas.map((area) => (
-                        <th key={area.id} className="py-3 px-4 min-w-[220px] border-r border-slate-200 last:border-r-0">
+                        <th key={area.id} className="py-3 px-4 min-w-[230px] border-r border-slate-200 last:border-r-0">
                           <div className="flex items-center justify-between gap-1">
                             <span className="text-slate-900 font-bold">{area.tenKhuVuc}</span>
                             {area.trangThai === 'bảo trì' ? (
-                              <span className="text-[10px] text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                              <span className="text-[10px] text-rose-800 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
                                 Bảo trì
                               </span>
                             ) : area.trangThai === 'ngừng sử dụng' ? (
@@ -451,7 +456,7 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                                 Ngừng
                               </span>
                             ) : (
-                              <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                              <span className="text-[10px] text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
                                 Hoạt động
                               </span>
                             )}
@@ -495,7 +500,9 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                             }
 
                             if (slotBooking) {
-                              const isMyBooking = slotBooking.idNguoiDung === currentUser.id;
+                              const isMyBooking = currentUser ? slotBooking.idNguoiDung === currentUser.id : false;
+                              const lopHoc = slotBooking.lop || (user?.lop ? user.lop : '');
+
                               return (
                                 <td
                                   key={area.id}
@@ -505,24 +512,33 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                                     onClick={() => onViewBookingDetails(slotBooking)}
                                     className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all hover:shadow-xs ${
                                       slotBooking.trangThai === 'đang sử dụng'
-                                        ? 'bg-blue-50/60 border-blue-200'
+                                        ? 'bg-blue-50/70 border-blue-200'
                                         : slotBooking.trangThai === 'đã trả'
                                         ? 'bg-slate-50 border-slate-200 opacity-80'
-                                        : 'bg-amber-50/60 border-amber-200'
+                                        : 'bg-amber-50/70 border-amber-200'
                                     }`}
                                   >
                                     <div className="flex items-center justify-between gap-1 mb-1">
-                                      <div className="font-semibold text-slate-900 truncate">
+                                      <div className="font-bold text-slate-900 truncate">
                                         {user?.hoTen || 'Giáo viên'}
                                       </div>
                                       {renderStatusBadge(slotBooking.trangThai)}
                                     </div>
-                                    <div className="text-[11px] text-slate-600 line-clamp-1">
-                                      {slotBooking.mucDichSuDung || 'Dạy học bộ môn'}
+
+                                    {/* Class information */}
+                                    {lopHoc && (
+                                      <div className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-100/70 px-1.5 py-0.5 rounded my-0.5">
+                                        <GraduationCap className="w-3 h-3" />
+                                        Lớp {lopHoc}
+                                      </div>
+                                    )}
+
+                                    <div className="text-[11px] text-slate-600 line-clamp-1 mt-0.5">
+                                      {slotBooking.mucDichSuDung || 'Giảng dạy thể dục'}
                                     </div>
                                     {isMyBooking && (
-                                      <div className="mt-1.5 text-[10px] font-semibold text-emerald-700 bg-emerald-100/60 px-1.5 py-0.5 rounded inline-block">
-                                        Lượt đăng ký của bạn
+                                      <div className="mt-1 text-[10px] font-semibold text-emerald-700 bg-white px-1.5 py-0.5 rounded border border-emerald-200 inline-block">
+                                        Lịch của bạn
                                       </div>
                                     )}
                                   </div>
@@ -530,7 +546,6 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                               );
                             }
 
-                            // Empty slot
                             return (
                               <td
                                 key={area.id}
@@ -547,13 +562,13 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                                       tiet: tiet,
                                     })
                                   }
-                                  className="w-full h-full min-h-[58px] p-2 rounded-lg border border-dashed border-emerald-200 bg-emerald-50/20 hover:bg-emerald-50 hover:border-emerald-400 transition-colors flex flex-col items-center justify-center text-center text-emerald-700"
+                                  className="w-full h-full min-h-[64px] p-2 rounded-lg border border-dashed border-emerald-300 bg-emerald-50/20 hover:bg-emerald-50 hover:border-emerald-500 transition-colors flex flex-col items-center justify-center text-center text-emerald-700"
                                 >
                                   <span className="text-[11px] font-semibold flex items-center gap-1">
                                     <Plus className="w-3 h-3" /> Còn trống
                                   </span>
                                   <span className="text-[10px] text-emerald-600/80">
-                                    Bấm để mượn tiết {tiet}
+                                    Bấm mượn tiết {tiet}
                                   </span>
                                 </button>
                               </td>
@@ -611,7 +626,7 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                       )}
                     </div>
                     <div className="flex items-center justify-between text-xs text-slate-200 mt-1">
-                      <span>{area.viTri || 'Khuôn viên nhà trường'}</span>
+                      <span>{area.viTri || 'Khuôn viên trường Lê Quý Đôn'}</span>
                       <span className="font-bold text-amber-300 font-mono">
                         {area.giaThueGio.toLocaleString('vi-VN')} đ/giờ
                       </span>
@@ -638,6 +653,8 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                       <div className="space-y-2">
                         {areaBookings.map((b) => {
                           const renter = userMap.get(b.idNguoiDung);
+                          const lopDisplay = b.lop || renter?.lop;
+
                           return (
                             <div
                               key={b.id}
@@ -650,11 +667,16 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                                 </span>
                                 {renderStatusBadge(b.trangThai)}
                               </div>
-                              <div className="text-xs text-slate-800 font-medium">
-                                {renter?.hoTen} {renter?.lop ? `(Lớp ${renter.lop})` : ''}
+                              <div className="text-xs text-slate-800 font-bold flex items-center gap-1.5">
+                                <span>{renter?.hoTen}</span>
+                                {lopDisplay && (
+                                  <span className="text-emerald-700 bg-emerald-50 border border-emerald-200 text-[10px] px-1.5 py-0.2 rounded font-semibold">
+                                    Lớp {lopDisplay}
+                                  </span>
+                                )}
                               </div>
                               <div className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">
-                                {b.mucDichSuDung || 'Thuê vui chơi giải trí'} ·{' '}
+                                {b.mucDichSuDung || 'Thuê vui chơi thể thao'} ·{' '}
                                 <span className="font-mono font-medium text-emerald-700">
                                   {b.tongTien ? b.tongTien.toLocaleString('vi-VN') + ' đ' : 'Miễn phí'}
                                 </span>

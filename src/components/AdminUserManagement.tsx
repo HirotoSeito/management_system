@@ -15,7 +15,7 @@ import {
   Building2,
   AlertTriangle,
 } from 'lucide-react';
-import { formatDateToVN } from '../utils/bookingRules.ts';
+import { formatDateToVN, DANH_SACH_LOP_CHUYEN } from '../utils/bookingRules.ts';
 
 interface AdminUserManagementProps {
   users: NguoiDung[];
@@ -338,15 +338,19 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
               {idVaiTro === 'hoc_sinh' && (
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Lớp của học sinh
+                    Lớp chuyên của học sinh <span className="text-rose-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    value={lop}
+                  <select
+                    value={lop || DANH_SACH_LOP_CHUYEN[0]}
                     onChange={(e) => setLop(e.target.value)}
-                    placeholder="VD: 10A1, 11B2, 12A5"
-                    className="w-full text-xs border border-slate-300 rounded-lg px-3 py-2 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-slate-500/20"
-                  />
+                    className="w-full text-xs font-semibold border border-slate-300 rounded-lg px-3 py-2 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-slate-500/20"
+                  >
+                    {DANH_SACH_LOP_CHUYEN.map((l) => (
+                      <option key={l} value={l}>
+                        Lớp {l} (Chuyên Lê Quý Đôn)
+                      </option>
+                    ))}
+                  </select>
                 </div>
               )}
 

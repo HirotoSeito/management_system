@@ -1,9 +1,21 @@
 /**
  * Pure functions for school sports area booking rules, time conversions,
  * conflict resolution, and statistical calculations.
+ * Tailored for Trường THPT chuyên Lê Quý Đôn – Nam Nha Trang.
  */
 
 import type { DangKy, KhuVuc, NguoiDung, ThuTrongTuan, BuoiTrongNgay, TietHoc } from '../types/index.ts';
+
+// Danh sách các khối và lớp chuyên của Trường THPT chuyên Lê Quý Đôn – Nam Nha Trang
+export const KHOI_HOC = ['10', '11', '12'] as const;
+export const CHUYEN_MON = ['Toán', 'Lý', 'Hóa', 'Sinh', 'Tin', 'Anh 1', 'Anh 2', 'Văn'] as const;
+
+export const DANH_SACH_LOP_CHUYEN: string[] = [];
+KHOI_HOC.forEach((khoi) => {
+  CHUYEN_MON.forEach((mon) => {
+    DANH_SACH_LOP_CHUYEN.push(`${khoi} ${mon}`);
+  });
+});
 
 // Standard mapping for periods (tiết học)
 export const TIET_HOC_INFO: Record<BuoiTrongNgay, Record<TietHoc, { label: string; thoiGian: string }>> = {
@@ -213,7 +225,7 @@ export function checkBookingConflict(
       return { hasConflict: true, reason: 'Giờ kết thúc phải sau giờ bắt đầu.' };
     }
 
-    // Check overlap with existing weekend hourly bookings or legacy slots
+    // Check overlap with existing weekend hourly bookings
     const conflict = activeBookingsOnSameDate.find((b) => {
       if (b.gioBatDau && b.gioKetThuc) {
         return doTimesOverlap(gioBatDau, gioKetThuc, b.gioBatDau, b.gioKetThuc);
@@ -238,7 +250,7 @@ export function checkBookingConflict(
  * - 'day': specific date (dd/mm/yyyy)
  * - 'week': bookings in the same 7-day week of target date
  * - 'month': bookings in target month/year
- * - 'semester': Semester 1 (Sep - Jan) or Semester 2 (Feb - May/Jun)
+ * - 'semester': Semester 1 (Sep - Jan) or Semester 2 (Feb - Jun)
  */
 export type FilterTimeframe = 'tat_ca' | 'ngay' | 'tuan' | 'thang' | 'hoc_ky';
 
@@ -281,8 +293,8 @@ export function filterBookingsByTimeframe(
 
       case 'hoc_ky': {
         const m = bDate.getMonth(); // 0-11
-        // Semester 1: Months 8, 9, 10, 11, 0 (Sep - Jan)
-        // Semester 2: Months 1, 2, 3, 4, 5 (Feb - Jun)
+        // Semester 1: Sep - Jan (8, 9, 10, 11, 0)
+        // Semester 2: Feb - Jun (1, 2, 3, 4, 5)
         const isTargetInSemester1 = targetMonth >= 8 || targetMonth === 0;
         const isBDateInSemester1 = m >= 8 || m === 0;
         return isTargetInSemester1 === isBDateInSemester1;

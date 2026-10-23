@@ -14,21 +14,21 @@ import { StatisticsView } from './components/StatisticsView.tsx';
 import { AdminUserManagement } from './components/AdminUserManagement.tsx';
 import { BGHFacilityManagement } from './components/BGHFacilityManagement.tsx';
 import { BookingDetailsModal } from './components/BookingDetailsModal.tsx';
+import { LoginModal } from './components/LoginModal.tsx';
 import {
   Calendar,
   CheckCircle2,
   AlertCircle,
-  HelpCircle,
-  Award,
+  School,
   Clock,
-  Sparkles,
+  RotateCcw,
 } from 'lucide-react';
 
 export default function App() {
-  // 1. Data state with LocalStorage persistence
+  // Data state with LocalStorage persistence
   const [users, setUsers] = useState<NguoiDung[]>(() => {
     try {
-      const saved = localStorage.getItem('sports_users');
+      const saved = localStorage.getItem('sports_users_lqd');
       return saved ? JSON.parse(saved) : INITIAL_NGUOI_DUNG;
     } catch {
       return INITIAL_NGUOI_DUNG;
@@ -37,7 +37,7 @@ export default function App() {
 
   const [areas, setAreas] = useState<KhuVuc[]>(() => {
     try {
-      const saved = localStorage.getItem('sports_areas');
+      const saved = localStorage.getItem('sports_areas_lqd');
       return saved ? JSON.parse(saved) : INITIAL_KHU_VUC;
     } catch {
       return INITIAL_KHU_VUC;
@@ -46,17 +46,36 @@ export default function App() {
 
   const [bookings, setBookings] = useState<DangKy[]>(() => {
     try {
-      const saved = localStorage.getItem('sports_bookings');
+      const saved = localStorage.getItem('sports_bookings_lqd');
       return saved ? JSON.parse(saved) : generateInitialBookings();
     } catch {
       return generateInitialBookings();
     }
   });
 
-  // Current logged in user (Default: Thầy Nguyễn Văn Nam - GV Thể dục)
-  const [currentUser, setCurrentUser] = useState<NguoiDung>(() => {
-    return users.find((u) => u.id === 'u_gv_nam') || users[0];
+  // Current logged in user (Default: Thầy Nguyễn Văn Nam - GV Thể dục THPT Chuyên Lê Quý Đôn)
+  const [currentUser, setCurrentUser] = useState<NguoiDung | null>(() => {
+    try {
+      const savedUser = localStorage.getItem('sports_current_user_lqd');
+      if (savedUser) return JSON.parse(savedUser);
+    } catch {
+      // fallback
+    }
+    return users.find((u) => u.id === 'u_gv_nam') || users[0] || null;
   });
+
+  const handleLogout = () => {
+    setCurrentUser(null);
+    localStorage.removeItem('sports_current_user_lqd');
+    showToast('Đã đăng xuất tài khoản.', 'info');
+  };
+
+  const handleLoginSuccess = (loggedInUser: NguoiDung) => {
+    setCurrentUser(loggedInUser);
+    localStorage.setItem('sports_current_user_lqd', JSON.stringify(loggedInUser));
+    setIsLoginModalOpen(false);
+    showToast(`Đăng nhập thành công: ${loggedInUser.hoTen} (${loggedInUser.idVaiTro})`, 'success');
+  };
 
   // Navigation tab state
   const [activeTab, setActiveTab] = useState<
@@ -67,6 +86,7 @@ export default function App() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Partial<DangKy> | null>(null);
   const [selectedBookingForDetails, setSelectedBookingForDetails] = useState<DangKy | null>(null);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   // Notification Toast
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' | 'error' } | null>(null);
@@ -81,7 +101,7 @@ export default function App() {
   // Sync to localStorage
   useEffect(() => {
     try {
-      localStorage.setItem('sports_users', JSON.stringify(users));
+      localStorage.setItem('sports_users_lqd', JSON.stringify(users));
     } catch (e) {
       console.error(e);
     }
@@ -89,7 +109,7 @@ export default function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('sports_areas', JSON.stringify(areas));
+      localStorage.setItem('sports_areas_lqd', JSON.stringify(areas));
     } catch (e) {
       console.error(e);
     }
@@ -97,7 +117,7 @@ export default function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem('sports_bookings', JSON.stringify(bookings));
+      localStorage.setItem('sports_bookings_lqd', JSON.stringify(bookings));
     } catch (e) {
       console.error(e);
     }
@@ -113,10 +133,10 @@ export default function App() {
     setAreas(defaultAreas);
     setBookings(defaultBookings);
     setCurrentUser(defaultUsers.find((u) => u.id === 'u_gv_nam') || defaultUsers[0]);
-    localStorage.removeItem('sports_users');
-    localStorage.removeItem('sports_areas');
-    localStorage.removeItem('sports_bookings');
-    showToast('Đã khôi phục dữ liệu mẫu ban đầu!', 'info');
+    localStorage.removeItem('sports_users_lqd');
+    localStorage.removeItem('sports_areas_lqd');
+    localStorage.removeItem('sports_bookings_lqd');
+    showToast('Đã khôi phục dữ liệu mẫu ban đầu của trường Lê Quý Đôn!', 'info');
   };
 
   // Handlers for Booking
@@ -142,7 +162,7 @@ export default function App() {
         b.id === bookingId ? { ...b, trangThai: 'đang sử dụng' } : b
       )
     );
-    showToast('Đã nhận sân và bắt đầu sử dụng!', 'success');
+    showToast('Đã nhận sân và bắt đầu tiết dạy/buổi chơi!', 'success');
   };
 
   const handleReturnArea = (bookingId: string) => {
@@ -251,6 +271,11 @@ export default function App() {
         users={users}
         activeTab={activeTab}
         setActiveTab={(tab) => {
+          if ((tab === 'booking' || tab === 'my-bookings' || tab === 'users' || tab === 'facilities') && !currentUser) {
+            showToast('Vui lòng đăng nhập để thực hiện thao tác này.', 'info');
+            setIsLoginModalOpen(true);
+            return;
+          }
           if (tab === 'booking') {
             setEditingBooking(null);
             setIsBookingModalOpen(true);
@@ -258,63 +283,9 @@ export default function App() {
             setActiveTab(tab);
           }
         }}
-        onSwitchUser={(user) => {
-          setCurrentUser(user);
-          showToast(`Đang đăng nhập với vai trò: ${user.hoTen}`, 'info');
-        }}
-        onResetData={handleResetData}
+        onOpenLoginModal={() => setIsLoginModalOpen(true)}
+        onLogout={handleLogout}
       />
-
-      {/* Hero Announcement & Fast Role Quick-Strip */}
-      <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2 text-slate-600">
-            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            <span className="font-medium">
-              Quy chế mượn/thuê: Thứ 2 - Thứ 6 mượn theo tiết học (Giáo viên) · Thứ 7 & Chủ nhật thuê theo giờ (Học sinh)
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5 text-slate-500">
-            <span>Tài khoản kiểm thử nhanh:</span>
-            <button
-              onClick={() => setCurrentUser(users.find((u) => u.idVaiTro === 'giao_vien') || users[0])}
-              className={`px-2 py-0.5 rounded font-medium transition-colors ${
-                currentUser.idVaiTro === 'giao_vien' ? 'bg-blue-100 text-blue-900 font-bold' : 'hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              Giáo viên
-            </button>
-            <span>·</span>
-            <button
-              onClick={() => setCurrentUser(users.find((u) => u.idVaiTro === 'hoc_sinh') || users[0])}
-              className={`px-2 py-0.5 rounded font-medium transition-colors ${
-                currentUser.idVaiTro === 'hoc_sinh' ? 'bg-emerald-100 text-emerald-900 font-bold' : 'hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              Học sinh
-            </button>
-            <span>·</span>
-            <button
-              onClick={() => setCurrentUser(users.find((u) => u.idVaiTro === 'bgh') || users[0])}
-              className={`px-2 py-0.5 rounded font-medium transition-colors ${
-                currentUser.idVaiTro === 'bgh' ? 'bg-purple-100 text-purple-900 font-bold' : 'hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              BGH
-            </button>
-            <span>·</span>
-            <button
-              onClick={() => setCurrentUser(users.find((u) => u.idVaiTro === 'admin') || users[0])}
-              className={`px-2 py-0.5 rounded font-medium transition-colors ${
-                currentUser.idVaiTro === 'admin' ? 'bg-amber-100 text-amber-900 font-bold' : 'hover:bg-slate-100 text-slate-700'
-              }`}
-            >
-              Admin
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full">
@@ -325,6 +296,11 @@ export default function App() {
             users={users}
             currentUser={currentUser}
             onOpenBooking={(prefill) => {
+              if (!currentUser) {
+                showToast('Vui lòng đăng nhập để đăng ký mượn/thuê sân.', 'info');
+                setIsLoginModalOpen(true);
+                return;
+              }
               setEditingBooking(prefill || null);
               setIsBookingModalOpen(true);
             }}
@@ -333,19 +309,35 @@ export default function App() {
         )}
 
         {activeTab === 'my-bookings' && (
-          <MyBookings
-            bookings={bookings}
-            areas={areas}
-            users={users}
-            currentUser={currentUser}
-            onEditBooking={(booking) => {
-              setEditingBooking(booking);
-              setIsBookingModalOpen(true);
-            }}
-            onCancelBooking={handleCancelBooking}
-            onReturnArea={handleReturnArea}
-            onStartUsingArea={handleStartUsingArea}
-          />
+          currentUser ? (
+            <MyBookings
+              bookings={bookings}
+              areas={areas}
+              users={users}
+              currentUser={currentUser}
+              onEditBooking={(booking) => {
+                setEditingBooking(booking);
+                setIsBookingModalOpen(true);
+              }}
+              onCancelBooking={handleCancelBooking}
+              onReturnArea={handleReturnArea}
+              onStartUsingArea={handleStartUsingArea}
+            />
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center max-w-md mx-auto my-12 shadow-xs">
+              <School className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+              <h3 className="text-base font-bold text-slate-800">Yêu cầu đăng nhập</h3>
+              <p className="text-xs text-slate-500 mt-1 mb-4">
+                Vui lòng đăng nhập tài khoản nhà trường để xem danh sách lịch mượn và thuê của bạn.
+              </p>
+              <button
+                onClick={() => setIsLoginModalOpen(true)}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
+              >
+                Đăng Nhập Ngay
+              </button>
+            </div>
+          )
         )}
 
         {activeTab === 'stats' && (
@@ -356,7 +348,7 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'users' && currentUser.idVaiTro === 'admin' && (
+        {activeTab === 'users' && currentUser?.idVaiTro === 'admin' && (
           <AdminUserManagement
             users={users}
             onAddUser={handleAddUser}
@@ -366,7 +358,7 @@ export default function App() {
         )}
 
         {activeTab === 'facilities' &&
-          (currentUser.idVaiTro === 'bgh' || currentUser.idVaiTro === 'admin') && (
+          (currentUser?.idVaiTro === 'bgh' || currentUser?.idVaiTro === 'admin') && (
             <BGHFacilityManagement
               areas={areas}
               onAddArea={handleAddArea}
@@ -376,20 +368,22 @@ export default function App() {
           )}
       </main>
 
-      {/* Booking Form Modal */}
-      <BookingModal
-        isOpen={isBookingModalOpen}
-        onClose={() => {
-          setIsBookingModalOpen(false);
-          setEditingBooking(null);
-        }}
-        onSave={handleSaveBooking}
-        areas={areas}
-        bookings={bookings}
-        users={users}
-        currentUser={currentUser}
-        initialBooking={editingBooking}
-      />
+      {/* Booking Form Modal - Fixed layout with non-clipped title */}
+      {currentUser && (
+        <BookingModal
+          isOpen={isBookingModalOpen}
+          onClose={() => {
+            setIsBookingModalOpen(false);
+            setEditingBooking(null);
+          }}
+          onSave={handleSaveBooking}
+          areas={areas}
+          bookings={bookings}
+          users={users}
+          currentUser={currentUser}
+          initialBooking={editingBooking}
+        />
+      )}
 
       {/* Booking Details Modal */}
       <BookingDetailsModal
@@ -401,18 +395,34 @@ export default function App() {
         onReturnArea={handleReturnArea}
       />
 
+      {/* Login / Switch Account Modal */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        users={users}
+        onLoginSuccess={handleLoginSuccess}
+      />
+
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 mt-auto py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500 space-y-1">
-          <p className="font-semibold text-slate-700">
-            Hệ Thống Quản Lý Khu Vực Thể Thao Trường Học · Sports Master
+          <p className="font-bold text-slate-800">
+            Hệ Thống Quản Lý Khu Vực Thể Thao Nội Bộ
           </p>
-          <p>
-            Kiểm soát thời gian mượn & trả: Sân bóng đá · Sân Pickleball · Sân cầu lông · Khu chơi bóng bàn
+          <p className="text-slate-600">
+            Trường THPT Chuyên Lê Quý Đôn – Nam Nha Trang · Phục vụ công tác dạy học và rèn luyện thể chất
           </p>
-          <p className="text-[11px] text-slate-400">
-            Phiên bản điện tử hỗ trợ báo cáo, chống trùng lịch và xuất dữ liệu Excel
-          </p>
+          <div className="pt-2 flex items-center justify-center gap-4 text-[11px] text-slate-400">
+            <span>Áp dụng độc quyền nội bộ trường</span>
+            <span>·</span>
+            <button
+              onClick={handleResetData}
+              className="text-slate-400 hover:text-slate-600 transition-colors flex items-center gap-1"
+            >
+              <RotateCcw className="w-3 h-3" />
+              Khôi phục dữ liệu gốc
+            </button>
+          </div>
         </div>
       </footer>
     </div>

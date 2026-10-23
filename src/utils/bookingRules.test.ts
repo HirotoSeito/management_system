@@ -10,6 +10,7 @@ import {
   calculateRentalCost,
   checkBookingConflict,
   aggregateStatistics,
+  DANH_SACH_LOP_CHUYEN,
 } from './bookingRules.ts';
 import type { DangKy, KhuVuc, NguoiDung } from '../types/index.ts';
 
@@ -223,4 +224,12 @@ test('aggregateStatistics: summarizes area and user usage accurately', () => {
   assert.equal(stats.areaStats.find((a) => a.idKhuVuc === 'kv_1')?.soLuotDangKy, 1);
   assert.equal(stats.areaStats.find((a) => a.idKhuVuc === 'kv_2')?.tongTienThu, 160000);
   assert.equal(stats.userStats.find((u) => u.idNguoiDung === 'u_2')?.tongChiPhi, 160000);
+});
+
+test('DANH_SACH_LOP_CHUYEN contains 24 classes for grades 10, 11, 12', () => {
+  assert.equal(DANH_SACH_LOP_CHUYEN.length, 24);
+  assert.ok(DANH_SACH_LOP_CHUYEN.includes('10 Toán'));
+  assert.ok(DANH_SACH_LOP_CHUYEN.includes('11 Anh 1'));
+  assert.ok(DANH_SACH_LOP_CHUYEN.includes('12 Văn'));
+  assert.ok(DANH_SACH_LOP_CHUYEN.includes('10 Tin'));
 });

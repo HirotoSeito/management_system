@@ -227,6 +227,11 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
                       <Calendar className="w-3.5 h-3.5 text-slate-400" />
                       {b.thu}, {b.ngaySuDung}
                     </span>
+                    {(b.lop || borrower?.lop) && (
+                      <span className="font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                        Lớp: {b.lop || borrower?.lop}
+                      </span>
+                    )}
                     <span className="flex items-center gap-1 font-mono">
                       <Clock className="w-3.5 h-3.5 text-slate-400" />
                       {timeDetails}
