@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NguoiDung, VaiTroId } from '../types/index.ts';
 import {
   Calendar,
@@ -15,13 +15,15 @@ import {
   School,
   Lock,
   LogIn,
+  Clock,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface HeaderProps {
   currentUser: NguoiDung | null;
   users: NguoiDung[];
-  activeTab: 'schedule' | 'booking' | 'my-bookings' | 'stats' | 'users' | 'facilities';
-  setActiveTab: (tab: 'schedule' | 'booking' | 'my-bookings' | 'stats' | 'users' | 'facilities') => void;
+  activeTab: 'schedule' | 'booking' | 'my-bookings' | 'stats' | 'users' | 'facilities' | 'security';
+  setActiveTab: (tab: 'schedule' | 'booking' | 'my-bookings' | 'stats' | 'users' | 'facilities' | 'security') => void;
   onOpenLoginModal: () => void;
   onLogout: () => void;
 }
@@ -35,6 +37,30 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
 }) => {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+
+  // Real-time ticking clock
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formatClockTime = (date: Date) => {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+  };
+
+  const formatClockDate = (date: Date) => {
+    const days = ['Chủ nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+    const d = String(date.getDate()).padStart(2, '0');
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const y = date.getFullYear();
+    return `${days[date.getDay()]}, ${d}/${m}/${y}`;
+  };
 
   const getRoleBadge = (roleId: VaiTroId) => {
     switch (roleId) {
@@ -46,6 +72,8 @@ export const Header: React.FC<HeaderProps> = ({
         return { label: 'Giáo viên bộ môn', icon: Award, color: 'text-blue-800 bg-blue-50 border-blue-200' };
       case 'hoc_sinh':
         return { label: 'Học sinh', icon: GraduationCap, color: 'text-emerald-800 bg-emerald-50 border-emerald-200' };
+      case 'bao_ve':
+        return { label: 'Bảo vệ trường', icon: ShieldCheck, color: 'text-amber-900 bg-amber-100 border-amber-300' };
     }
   };
 
@@ -149,10 +177,40 @@ export const Header: React.FC<HeaderProps> = ({
                 Khu Vực (BGH)
               </button>
             )}
+
+            {/* Security Guard tab: Bao Ve, Admin, BGH */}
+            {(currentUser?.idVaiTro === 'bao_ve' || currentUser?.idVaiTro === 'admin' || currentUser?.idVaiTro === 'bgh') && (
+              <button
+                onClick={() => setActiveTab('security')}
+                className={`px-3 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                  activeTab === 'security'
+                    ? 'bg-amber-100 text-amber-900 font-bold border border-amber-300'
+                    : 'text-amber-800 hover:bg-amber-50 hover:text-amber-900'
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4 text-amber-600" />
+                Ca Trực Bảo Vệ
+              </button>
+            )}
           </nav>
 
-          {/* User profile with realistic School Account dropdown */}
-          <div className="relative flex items-center gap-2">
+          {/* Right section: Live System Clock & User profile */}
+          <div className="flex items-center gap-3">
+            {/* Live Clock Badge */}
+            <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-xl bg-slate-100 border border-slate-200 text-slate-700">
+              <Clock className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+              <div className="text-left leading-tight">
+                <div className="text-[11px] font-mono font-bold text-slate-800">
+                  {formatClockTime(currentTime)}
+                </div>
+                <div className="text-[10px] text-slate-500 font-medium">
+                  {formatClockDate(currentTime)}
+                </div>
+              </div>
+            </div>
+
+            {/* User profile with realistic School Account dropdown */}
+            <div className="relative flex items-center gap-2">
             {currentUser && roleInfo ? (
               <>
                 <button
@@ -232,6 +290,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>Đăng Nhập</span>
               </button>
             )}
+            </div>
           </div>
         </div>
 
@@ -287,6 +346,16 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               Khu vực
+            </button>
+          )}
+          {(currentUser?.idVaiTro === 'bao_ve' || currentUser?.idVaiTro === 'admin' || currentUser?.idVaiTro === 'bgh') && (
+            <button
+              onClick={() => setActiveTab('security')}
+              className={`px-2 py-1 text-xs font-semibold rounded ${
+                activeTab === 'security' ? 'bg-amber-200 text-amber-950 font-bold' : 'text-amber-800'
+              }`}
+            >
+              Ca trực
             </button>
           )}
         </div>

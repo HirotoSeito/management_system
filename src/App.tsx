@@ -13,6 +13,7 @@ import { MyBookings } from './components/MyBookings.tsx';
 import { StatisticsView } from './components/StatisticsView.tsx';
 import { AdminUserManagement } from './components/AdminUserManagement.tsx';
 import { BGHFacilityManagement } from './components/BGHFacilityManagement.tsx';
+import { SecurityGuardManagement } from './components/SecurityGuardManagement.tsx';
 import { BookingDetailsModal } from './components/BookingDetailsModal.tsx';
 import { LoginModal } from './components/LoginModal.tsx';
 import {
@@ -74,12 +75,18 @@ export default function App() {
     setCurrentUser(loggedInUser);
     localStorage.setItem('sports_current_user_lqd', JSON.stringify(loggedInUser));
     setIsLoginModalOpen(false);
+
+    // If user is security guard, direct them immediately to the security tab
+    if (loggedInUser.idVaiTro === 'bao_ve') {
+      setActiveTab('security');
+    }
+
     showToast(`Đăng nhập thành công: ${loggedInUser.hoTen} (${loggedInUser.idVaiTro})`, 'success');
   };
 
   // Navigation tab state
   const [activeTab, setActiveTab] = useState<
-    'schedule' | 'booking' | 'my-bookings' | 'stats' | 'users' | 'facilities'
+    'schedule' | 'booking' | 'my-bookings' | 'stats' | 'users' | 'facilities' | 'security'
   >('schedule');
 
   // Modal states
@@ -194,10 +201,72 @@ export default function App() {
     showToast('Đã hủy lượt đăng ký. Khu vực đã được mở lại cho người khác.', 'info');
   };
 
+  // Handlers for Security Guard Duty
+  const handleConfirmPayment = (bookingId: string) => {
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.id === bookingId
+          ? {
+              ...b,
+              daThuTien: true,
+              nguoiThuTien: currentUser?.hoTen || 'Bác Bảo vệ trường',
+            }
+          : b
+      )
+    );
+    showToast('Bác bảo vệ đã xác nhận thu tiền thuê trực tiếp tại cổng!', 'success');
+  };
+
+  const handleCheckInArea = (bookingId: string) => {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const timeStr = `${hours}:${minutes} ${formatDateToVN(now)}`;
+
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.id === bookingId
+          ? {
+              ...b,
+              trangThai: 'đang sử dụng',
+              thoiGianNhanSan: timeStr,
+            }
+          : b
+      )
+    );
+    showToast(`Bảo vệ đã mở cổng cho học sinh/giáo viên vào nhận sân (${timeStr})!`, 'success');
+  };
+
+  const handleCheckOutAreaWithNotes = (bookingId: string, notes?: string) => {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    const timeStr = `${hours}:${minutes} ${formatDateToVN(now)}`;
+
+    setBookings((prev) =>
+      prev.map((b) =>
+        b.id === bookingId
+          ? {
+              ...b,
+              trangThai: 'đã trả',
+              thoiGianTra: timeStr,
+              ghiChuBaoVe: notes,
+            }
+          : b
+      )
+    );
+    showToast(`Bảo vệ đã kiểm tra CSVC và hoàn tất nhận lại sân (${timeStr})!`, 'success');
+  };
+
   // Handlers for Admin User Management
   const handleAddUser = (newUser: NguoiDung) => {
     setUsers((prev) => [...prev, newUser]);
     showToast(`Đã tạo tài khoản cho "${newUser.hoTen}"!`, 'success');
+  };
+
+  const handleAddBatchUsers = (newUsers: NguoiDung[]) => {
+    setUsers((prev) => [...prev, ...newUsers]);
+    showToast(`Đã nhập thành công ${newUsers.length} tài khoản từ file Excel!`, 'success');
   };
 
   const handleToggleUserStatus = (userId: string) => {
@@ -265,13 +334,13 @@ export default function App() {
         </div>
       )}
 
-      {/* Main Header */}
+      {/* Main Header with Live Clock */}
       <Header
         currentUser={currentUser}
         users={users}
         activeTab={activeTab}
         setActiveTab={(tab) => {
-          if ((tab === 'booking' || tab === 'my-bookings' || tab === 'users' || tab === 'facilities') && !currentUser) {
+          if ((tab === 'booking' || tab === 'my-bookings' || tab === 'users' || tab === 'facilities' || tab === 'security') && !currentUser) {
             showToast('Vui lòng đăng nhập để thực hiện thao tác này.', 'info');
             setIsLoginModalOpen(true);
             return;
@@ -348,10 +417,24 @@ export default function App() {
           />
         )}
 
+        {/* Security Guard Tab */}
+        {activeTab === 'security' && (
+          <SecurityGuardManagement
+            bookings={bookings}
+            areas={areas}
+            users={users}
+            currentUser={currentUser}
+            onConfirmPayment={handleConfirmPayment}
+            onCheckInArea={handleCheckInArea}
+            onCheckOutArea={handleCheckOutAreaWithNotes}
+          />
+        )}
+
         {activeTab === 'users' && currentUser?.idVaiTro === 'admin' && (
           <AdminUserManagement
             users={users}
             onAddUser={handleAddUser}
+            onAddBatchUsers={handleAddBatchUsers}
             onToggleUserStatus={handleToggleUserStatus}
             onDeleteUser={handleDeleteUser}
           />
@@ -368,7 +451,7 @@ export default function App() {
           )}
       </main>
 
-      {/* Booking Form Modal - Fixed layout with non-clipped title */}
+      {/* Booking Form Modal with Google-style representative autocomplete */}
       {currentUser && (
         <BookingModal
           isOpen={isBookingModalOpen}

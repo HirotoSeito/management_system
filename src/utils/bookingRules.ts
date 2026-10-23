@@ -150,8 +150,86 @@ export function calculateRentalCost(pricePerHour: number, startTime?: string, en
 }
 
 /**
+ * Check if a date string (dd/mm/yyyy) and slot (period or hours) is in the past compared to current time
+ */
+export function isSlotInThePast(
+  ngaySuDungVN: string,
+  tiet?: { buoi: BuoiTrongNgay; tiet: TietHoc },
+  gioBatDau?: string,
+  now: Date = new Date()
+): boolean {
+  if (!ngaySuDungVN) return false;
+  const slotDate = parseVNDate(ngaySuDungVN);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // Past date
+  if (slotDate < today) {
+    return true;
+  }
+
+  // Future date
+  if (slotDate > today) {
+    return false;
+  }
+
+  // Date is TODAY: check time
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+  if (tiet) {
+    const info = TIET_HOC_INFO[tiet.buoi][tiet.tiet];
+    const startTimeStr = info.thoiGian.split(' - ')[0];
+    const startMinutes = timeStringToMinutes(startTimeStr);
+    return currentMinutes >= startMinutes;
+  }
+
+  if (gioBatDau) {
+    const startMinutes = timeStringToMinutes(gioBatDau);
+    return currentMinutes >= startMinutes;
+  }
+
+  return false;
+}
+
+/**
+ * Validate weekend hours according to school regulations:
+ * Sáng: 07:00 – 10:00
+ * Chiều: 13:00 – 16:30
+ */
+export function isValidWeekendHours(gioBatDau: string, gioKetThuc: string): { isValid: boolean; reason?: string } {
+  if (!gioBatDau || !gioKetThuc) {
+    return { isValid: false, reason: 'Vui lòng nhập đầy đủ giờ bắt đầu và giờ kết thúc.' };
+  }
+
+  const startMin = timeStringToMinutes(gioBatDau);
+  const endMin = timeStringToMinutes(gioKetThuc);
+
+  if (endMin <= startMin) {
+    return { isValid: false, reason: 'Giờ kết thúc phải lớn hơn giờ bắt đầu.' };
+  }
+
+  const morningStart = timeStringToMinutes('07:00');
+  const morningEnd = timeStringToMinutes('10:00');
+  const afternoonStart = timeStringToMinutes('13:00');
+  const afternoonEnd = timeStringToMinutes('16:30');
+
+  const isMorning = startMin >= morningStart && endMin <= morningEnd;
+  const isAfternoon = startMin >= afternoonStart && endMin <= afternoonEnd;
+
+  if (!isMorning && !isAfternoon) {
+    return {
+      isValid: false,
+      reason: 'Theo quy định nhà trường, khung giờ thuê cuối tuần chỉ cho phép: Buổi Sáng (07:00 – 10:00) hoặc Buổi Chiều (13:00 – 16:30).',
+    };
+  }
+
+  return { isValid: true };
+}
+
+/**
  * Validate conflict for sports area booking:
  * - Reject if area is not active ('hoạt động')
+ * - Reject if time is in the past
+ * - Reject if student tries to book weekday
  * - Reject if duplicate slot on Monday - Friday (same date, area, buoi, tiet)
  * - Reject if overlapping time on Saturday - Sunday (same date, area, overlapping time range)
  */
@@ -165,7 +243,8 @@ export function checkBookingConflict(
   existingBookings: DangKy[],
   khuVuc: KhuVuc | undefined,
   newBooking: Partial<DangKy>,
-  excludeBookingId?: string
+  excludeBookingId?: string,
+  userRole?: string
 ): ConflictCheckResult {
   if (!khuVuc) {
     return { hasConflict: true, reason: 'Khu vực không tồn tại trong hệ thống.' };
@@ -185,6 +264,27 @@ export function checkBookingConflict(
   }
 
   const isWeekend = isCuoiTuan(thu);
+
+  // Rule: Students can only rent on weekends (Thứ 7 & Chủ nhật)
+  if (userRole === 'hoc_sinh' && !isWeekend) {
+    return {
+      hasConflict: true,
+      reason: 'Quy định nhà trường: Học sinh chỉ được phép đăng ký thuê sân vào Thứ 7 và Chủ nhật. Các ngày trong tuần (Thứ 2 - Thứ 6) dành riêng cho Giáo viên mượn để giảng dạy chính khóa theo tiết.',
+    };
+  }
+
+  // Rule: Past time cannot be registered
+  const isPast = isSlotInThePast(
+    ngaySuDung,
+    !isWeekend && buoi && tiet ? { buoi, tiet: tiet as TietHoc } : undefined,
+    isWeekend && gioBatDau ? gioBatDau : undefined
+  );
+  if (isPast) {
+    return {
+      hasConflict: true,
+      reason: 'Thời gian đã qua so với hiện tại. Hệ thống không cho phép đăng ký cho mốc thời gian quá khứ.',
+    };
+  }
 
   // Filter existing active bookings for the same area & date
   const activeBookingsOnSameDate = existingBookings.filter((b) => {
@@ -216,6 +316,11 @@ export function checkBookingConflict(
     // Weekend: must have gioBatDau and gioKetThuc
     if (!gioBatDau || !gioKetThuc) {
       return { hasConflict: true, reason: 'Vui lòng chọn giờ bắt đầu và giờ kết thúc.' };
+    }
+
+    const validTime = isValidWeekendHours(gioBatDau, gioKetThuc);
+    if (!validTime.isValid) {
+      return { hasConflict: true, reason: validTime.reason };
     }
 
     const startMin = timeStringToMinutes(gioBatDau);
@@ -384,6 +489,8 @@ export function aggregateStatistics(
         ? 'Ban giám hiệu'
         : u.idVaiTro === 'giao_vien'
         ? 'Giáo viên'
+        : u.idVaiTro === 'bao_ve'
+        ? 'Bảo vệ'
         : 'Học sinh';
 
     return {

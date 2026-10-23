@@ -6,6 +6,7 @@ import {
   vnDateToIso,
   getThuTrongTuan,
   isCuoiTuan,
+  isSlotInThePast,
   TIET_HOC_INFO,
 } from '../utils/bookingRules.ts';
 import { Calendar, Filter, Clock, CheckCircle2, User, AlertCircle, Plus, Info, GraduationCap } from 'lucide-react';
@@ -385,7 +386,28 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                               );
                             }
 
-                            // Empty available slot
+                            // Empty slot handling
+                            const isPastSlot = isSlotInThePast(selectedDateVN, { buoi: 'sáng', tiet });
+                            const isStudent = currentUser?.idVaiTro === 'hoc_sinh';
+
+                            if (isPastSlot) {
+                              return (
+                                <td
+                                  key={area.id}
+                                  className="p-2 border-r border-slate-200 last:border-r-0 bg-slate-50/50"
+                                >
+                                  <div className="w-full h-full min-h-[64px] p-2 rounded-lg border border-dashed border-slate-200 bg-slate-100/60 flex flex-col items-center justify-center text-center text-slate-400 select-none">
+                                    <span className="text-[11px] font-medium flex items-center gap-1 text-slate-400">
+                                      <Clock className="w-3 h-3" /> Đã qua giờ
+                                    </span>
+                                    <span className="text-[10px] text-slate-400">
+                                      Tiết {tiet} (Hết hạn)
+                                    </span>
+                                  </div>
+                                </td>
+                              );
+                            }
+
                             return (
                               <td
                                 key={area.id}
@@ -393,22 +415,26 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                               >
                                 <button
                                   type="button"
-                                  onClick={() =>
+                                  onClick={() => {
+                                    if (isStudent) {
+                                      alert('Quy chế nhà trường: Học sinh không được đại diện đăng ký theo tiết trong tuần. Học sinh chỉ được đăng ký thuê sân vào Thứ 7 và Chủ nhật.');
+                                      return;
+                                    }
                                     onOpenBooking({
                                       idKhuVuc: area.id,
                                       ngaySuDung: selectedDateVN,
                                       thu: selectedThu,
                                       buoi: 'sáng',
                                       tiet: tiet,
-                                    })
-                                  }
+                                    });
+                                  }}
                                   className="w-full h-full min-h-[64px] p-2 rounded-lg border border-dashed border-emerald-300 bg-emerald-50/20 hover:bg-emerald-50 hover:border-emerald-500 transition-colors flex flex-col items-center justify-center text-center text-emerald-700"
                                 >
                                   <span className="text-[11px] font-semibold flex items-center gap-1">
                                     <Plus className="w-3 h-3" /> Còn trống
                                   </span>
                                   <span className="text-[10px] text-emerald-600/80">
-                                    Bấm mượn tiết {tiet}
+                                    {isStudent ? 'Chỉ dành cho GV' : `Bấm mượn tiết ${tiet}`}
                                   </span>
                                 </button>
                               </td>
@@ -546,6 +572,28 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                               );
                             }
 
+                            // Empty slot handling
+                            const isPastSlot = isSlotInThePast(selectedDateVN, { buoi: 'chiều', tiet });
+                            const isStudent = currentUser?.idVaiTro === 'hoc_sinh';
+
+                            if (isPastSlot) {
+                              return (
+                                <td
+                                  key={area.id}
+                                  className="p-2 border-r border-slate-200 last:border-r-0 bg-slate-50/50"
+                                >
+                                  <div className="w-full h-full min-h-[64px] p-2 rounded-lg border border-dashed border-slate-200 bg-slate-100/60 flex flex-col items-center justify-center text-center text-slate-400 select-none">
+                                    <span className="text-[11px] font-medium flex items-center gap-1 text-slate-400">
+                                      <Clock className="w-3 h-3" /> Đã qua giờ
+                                    </span>
+                                    <span className="text-[10px] text-slate-400">
+                                      Tiết {tiet} (Hết hạn)
+                                    </span>
+                                  </div>
+                                </td>
+                              );
+                            }
+
                             return (
                               <td
                                 key={area.id}
@@ -553,22 +601,26 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                               >
                                 <button
                                   type="button"
-                                  onClick={() =>
+                                  onClick={() => {
+                                    if (isStudent) {
+                                      alert('Quy chế nhà trường: Học sinh không được đại diện đăng ký theo tiết trong tuần. Học sinh chỉ được đăng ký thuê sân vào Thứ 7 và Chủ nhật.');
+                                      return;
+                                    }
                                     onOpenBooking({
                                       idKhuVuc: area.id,
                                       ngaySuDung: selectedDateVN,
                                       thu: selectedThu,
                                       buoi: 'chiều',
                                       tiet: tiet,
-                                    })
-                                  }
+                                    });
+                                  }}
                                   className="w-full h-full min-h-[64px] p-2 rounded-lg border border-dashed border-emerald-300 bg-emerald-50/20 hover:bg-emerald-50 hover:border-emerald-500 transition-colors flex flex-col items-center justify-center text-center text-emerald-700"
                                 >
                                   <span className="text-[11px] font-semibold flex items-center gap-1">
                                     <Plus className="w-3 h-3" /> Còn trống
                                   </span>
                                   <span className="text-[10px] text-emerald-600/80">
-                                    Bấm mượn tiết {tiet}
+                                    {isStudent ? 'Chỉ dành cho GV' : `Bấm mượn tiết ${tiet}`}
                                   </span>
                                 </button>
                               </td>
