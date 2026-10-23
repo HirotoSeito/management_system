@@ -452,7 +452,7 @@ export default function App() {
       </main>
 
       {/* Booking Form Modal with Google-style representative autocomplete */}
-      {currentUser && (
+      {currentUser && isBookingModalOpen && (
         <BookingModal
           isOpen={isBookingModalOpen}
           onClose={() => {
@@ -469,22 +469,26 @@ export default function App() {
       )}
 
       {/* Booking Details Modal */}
-      <BookingDetailsModal
-        booking={selectedBookingForDetails}
-        onClose={() => setSelectedBookingForDetails(null)}
-        areas={areas}
-        users={users}
-        currentUser={currentUser}
-        onReturnArea={handleReturnArea}
-      />
+      {selectedBookingForDetails && (
+        <BookingDetailsModal
+          booking={selectedBookingForDetails}
+          onClose={() => setSelectedBookingForDetails(null)}
+          areas={areas}
+          users={users}
+          currentUser={currentUser}
+          onReturnArea={handleReturnArea}
+        />
+      )}
 
       {/* Login / Switch Account Modal */}
-      <LoginModal
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        users={users}
-        onLoginSuccess={handleLoginSuccess}
-      />
+      {isLoginModalOpen && (
+        <LoginModal
+          isOpen={isLoginModalOpen}
+          onClose={() => setIsLoginModalOpen(false)}
+          users={users}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      )}
 
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 mt-auto py-6">

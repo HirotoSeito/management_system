@@ -17,8 +17,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   onLoginSuccess,
   canClose = true,
 }) => {
-  if (!isOpen) return null;
-
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -49,6 +47,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     onLoginSuccess(targetUser);
     if (onClose) onClose();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs">

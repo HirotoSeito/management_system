@@ -47,8 +47,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   currentUser,
   initialBooking,
 }) => {
-  if (!isOpen) return null;
-
   const isEditing = Boolean(initialBooking && initialBooking.id);
 
   // Active facility
@@ -98,6 +96,26 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   );
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Sync state whenever initialBooking or isOpen changes
+  useEffect(() => {
+    if (isOpen) {
+      if (initialBooking?.idKhuVuc) setSelectedAreaId(initialBooking.idKhuVuc);
+      if (initialBooking?.ngaySuDung) setDateIso(vnDateToIso(initialBooking.ngaySuDung));
+      if (initialBooking?.buoi) setBuoi(initialBooking.buoi);
+      if (initialBooking?.tiet) setTiet(initialBooking.tiet);
+      if (initialBooking?.gioBatDau) setGioBatDau(initialBooking.gioBatDau);
+      if (initialBooking?.gioKetThuc) setGioKetThuc(initialBooking.gioKetThuc);
+      if (initialBooking?.mucDichSuDung !== undefined) setMucDichSuDung(initialBooking.mucDichSuDung);
+
+      const targetStudent = currentUser.idVaiTro === 'hoc_sinh'
+        ? currentUser
+        : studentUsers.find((s) => s.hoTen === initialBooking?.nguoiDaiDienTen || s.lop === initialBooking?.lop) || studentUsers[0] || null;
+
+      setSelectedStudent(targetStudent);
+      setSearchStudentQuery(initialBooking?.nguoiDaiDienTen || (currentUser.idVaiTro === 'hoc_sinh' ? currentUser.hoTen : targetStudent?.hoTen || ''));
+    }
+  }, [isOpen, initialBooking, currentUser]);
 
   // Close search dropdown on click outside
   useEffect(() => {
@@ -220,6 +238,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     onSave(newBooking);
     onClose();
   };
+
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs">
