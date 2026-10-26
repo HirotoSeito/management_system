@@ -19,7 +19,7 @@ Nhà trường có các khu vực thể thao gồm:
 - **Khu vực chơi bóng bàn**: Phòng 4 bàn thi đấu Double Fish tầng 2.
 
 **Quy tắc vận hành theo thời gian:**
-- **Từ thứ 2 đến thứ 6**: Giáo viên bộ môn mượn và trả khu vực theo tiết học (Tiết 1 – 5, Sáng 07:00 - 11:15, Chiều 13:00 - 17:15) để dạy học chính khóa. Học sinh không được đại diện đăng ký theo tiết trong tuần.
+- **Từ thứ 2 đến thứ 6**: Nhà trường không bố trí tiết Thể dục vào buổi sáng (dành cho các môn văn hóa). Toàn bộ các tiết Thể dục được xếp vào **Buổi Chiều (Tiết 1 – 5 từ 13:30 đến 17:35; 45 phút/tiết, nghỉ giải lao 5 phút)**; giáo viên bộ môn mượn và trả sân theo tiết học. Học sinh không được đại diện đăng ký theo tiết trong tuần.
 - **Vào thứ 7 và Chủ nhật**: Học sinh thuê và trả khu vực theo giờ để vui chơi, giải trí (khung giờ quy định: Sáng 07:00 – 10:00, Chiều 13:00 – 16:30).
 - **Kiểm soát thời gian thực**: Hiển thị đồng hồ thời gian thực (Live clock). Các tiết học hoặc khung giờ đã trôi qua trong quá khứ so với thời điểm hiện tại sẽ bị khóa, không cho phép đăng ký.
 - **Tìm kiếm người đại diện kiểu Google**: Khi đăng ký, người dùng nhập tên/username hoặc lớp của học sinh đại diện; hệ thống tự động kiểm tra và gợi ý trực tiếp (autocomplete), đồng thời tự động điền lớp học sinh, loại bỏ thao tác chọn lớp thủ công.

@@ -178,18 +178,18 @@ export function generateInitialBookings(): DangKy[] {
   sunday.setDate(monday.getDate() + 6);
 
   return [
-    // Thứ 2: Thầy Nam dạy thể dục bóng đá cho lớp 11 Toán buổi sáng tiết 1, 2
+    // Thứ 2: Thầy Nam dạy thể dục bóng đá cho lớp 11 Toán buổi chiều tiết 1, 2
     {
       id: 'bk_001',
       idNguoiDung: 'u_gv_nam',
       idKhuVuc: 'kv_bong_da',
       ngaySuDung: formatDateToVN(monday),
       thu: 'Thứ 2',
-      buoi: 'sáng',
+      buoi: 'chiều',
       tiet: 1,
       lop: '11 Toán',
       trangThai: 'đã trả',
-      thoiGianTra: `07:50 ${formatDateToVN(monday)}`,
+      thoiGianTra: `14:15 ${formatDateToVN(monday)}`,
       mucDichSuDung: 'Dạy thể dục kỹ thuật chuyền bóng lớp 11 Toán',
       tongTien: 0,
     },
@@ -199,30 +199,30 @@ export function generateInitialBookings(): DangKy[] {
       idKhuVuc: 'kv_bong_da',
       ngaySuDung: formatDateToVN(monday),
       thu: 'Thứ 2',
-      buoi: 'sáng',
+      buoi: 'chiều',
       tiet: 2,
       lop: '11 Lý',
       trangThai: 'đã trả',
-      thoiGianTra: `08:40 ${formatDateToVN(monday)}`,
+      thoiGianTra: `15:05 ${formatDateToVN(monday)}`,
       mucDichSuDung: 'Dạy thể dục kỹ thuật dẫn bóng lớp 11 Lý',
       tongTien: 0,
     },
-    // Thứ 2: Cô Mai dạy cầu lông cho lớp 12 Anh 1
+    // Thứ 2: Cô Mai dạy cầu lông cho lớp 12 Anh 1 buổi chiều tiết 3
     {
       id: 'bk_003',
       idNguoiDung: 'u_gv_mai',
       idKhuVuc: 'kv_cau_long',
       ngaySuDung: formatDateToVN(monday),
       thu: 'Thứ 2',
-      buoi: 'sáng',
+      buoi: 'chiều',
       tiet: 3,
       lop: '12 Anh 1',
       trangThai: 'đã trả',
-      thoiGianTra: `09:40 ${formatDateToVN(monday)}`,
+      thoiGianTra: `15:55 ${formatDateToVN(monday)}`,
       mucDichSuDung: 'Dạy kỹ thuật đập cầu lớp 12 Anh 1',
       tongTien: 0,
     },
-    // Thứ 3: Thầy Nam dạy bóng bàn cho lớp 10 Tin
+    // Thứ 3: Thầy Nam dạy bóng bàn cho lớp 10 Tin buổi chiều tiết 2
     {
       id: 'bk_004',
       idNguoiDung: 'u_gv_nam',
@@ -233,18 +233,18 @@ export function generateInitialBookings(): DangKy[] {
       tiet: 2,
       lop: '10 Tin',
       trangThai: 'đã trả',
-      thoiGianTra: `14:40 ${formatDateToVN(tuesday)}`,
+      thoiGianTra: `15:05 ${formatDateToVN(tuesday)}`,
       mucDichSuDung: 'Kiểm tra đánh bóng bàn lớp 10 Tin',
       tongTien: 0,
     },
-    // Thứ 4: Cô Mai mượn sân Pickleball cho lớp 10 Văn
+    // Thứ 4: Cô Mai mượn sân Pickleball cho lớp 10 Văn buổi chiều tiết 4
     {
       id: 'bk_005',
       idNguoiDung: 'u_gv_mai',
       idKhuVuc: 'kv_pickleball',
       ngaySuDung: formatDateToVN(wednesday),
       thu: 'Thứ 4',
-      buoi: 'sáng',
+      buoi: 'chiều',
       tiet: 4,
       lop: '10 Văn',
       trangThai: 'đã đăng ký',
@@ -252,7 +252,7 @@ export function generateInitialBookings(): DangKy[] {
       mucDichSuDung: 'Chuyên đề tự chọn thể thao môn Pickleball',
       tongTien: 0,
     },
-    // Thứ 5: Thầy Nam mượn sân bóng đá cho lớp 12 Hóa
+    // Thứ 5: Thầy Nam mượn sân bóng đá cho lớp 12 Hóa buổi chiều tiết 3
     {
       id: 'bk_006',
       idNguoiDung: 'u_gv_nam',
@@ -267,14 +267,14 @@ export function generateInitialBookings(): DangKy[] {
       mucDichSuDung: 'Đội tuyển thể thao trường luyện tập thi đấu giải ngành',
       tongTien: 0,
     },
-    // Thứ 6: Cô Mai mượn sân cầu lông cho lớp 10 Sinh
+    // Thứ 6: Cô Mai mượn sân cầu lông cho lớp 10 Sinh buổi chiều tiết 2
     {
       id: 'bk_007',
       idNguoiDung: 'u_gv_mai',
       idKhuVuc: 'kv_cau_long',
       ngaySuDung: formatDateToVN(friday),
       thu: 'Thứ 6',
-      buoi: 'sáng',
+      buoi: 'chiều',
       tiet: 2,
       lop: '10 Sinh',
       trangThai: 'đã đăng ký',

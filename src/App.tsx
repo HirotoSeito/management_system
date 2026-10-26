@@ -48,7 +48,14 @@ export default function App() {
   const [bookings, setBookings] = useState<DangKy[]>(() => {
     try {
       const saved = localStorage.getItem('sports_bookings_lqd');
-      return saved ? JSON.parse(saved) : generateInitialBookings();
+      const rawList: DangKy[] = saved ? JSON.parse(saved) : generateInitialBookings();
+      // School does not teach PE in the morning on weekdays
+      return rawList.map((b) => {
+        if (b.thu && !['Thứ 7', 'Chủ nhật'].includes(b.thu) && b.buoi === 'sáng') {
+          return { ...b, buoi: 'chiều' as const };
+        }
+        return b;
+      });
     } catch {
       return generateInitialBookings();
     }

@@ -66,8 +66,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     return `${y}-${m}-${d}`;
   });
 
-  // Weekday specific fields
-  const [buoi, setBuoi] = useState<BuoiTrongNgay>(initialBooking?.buoi || 'sáng');
+  // Weekday specific fields: default to 'chiều' because school has no PE in morning
+  const [buoi, setBuoi] = useState<BuoiTrongNgay>(initialBooking?.buoi || 'chiều');
   const [tiet, setTiet] = useState<TietHoc>(initialBooking?.tiet || 1);
 
   // Weekend specific fields
@@ -102,7 +102,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     if (isOpen) {
       if (initialBooking?.idKhuVuc) setSelectedAreaId(initialBooking.idKhuVuc);
       if (initialBooking?.ngaySuDung) setDateIso(vnDateToIso(initialBooking.ngaySuDung));
-      if (initialBooking?.buoi) setBuoi(initialBooking.buoi);
+      setBuoi('chiều');
       if (initialBooking?.tiet) setTiet(initialBooking.tiet);
       if (initialBooking?.gioBatDau) setGioBatDau(initialBooking.gioBatDau);
       if (initialBooking?.gioKetThuc) setGioKetThuc(initialBooking.gioKetThuc);
@@ -159,7 +159,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   // Validation 2: Past time check
   const isPastTime = isSlotInThePast(
     dateVN,
-    !isWeekend ? { buoi, tiet } : undefined,
+    !isWeekend ? { buoi: 'chiều', tiet } : undefined,
     isWeekend ? gioBatDau : undefined
   );
 
@@ -175,7 +175,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       : currentUser.id,
     ngaySuDung: dateVN,
     thu: thu,
-    buoi: !isWeekend ? buoi : undefined,
+    buoi: !isWeekend ? 'chiều' : undefined,
     tiet: !isWeekend ? tiet : undefined,
     gioBatDau: isWeekend ? gioBatDau : undefined,
     gioKetThuc: isWeekend ? gioKetThuc : undefined,
@@ -215,7 +215,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       idNguoiDung: currentUser.id,
       ngaySuDung: dateVN,
       thu: thu,
-      buoi: !isWeekend ? buoi : undefined,
+      buoi: !isWeekend ? 'chiều' : undefined,
       tiet: !isWeekend ? tiet : undefined,
       lop: effectiveLop,
       nguoiDaiDienTen: selectedStudent?.hoTen || currentUser.hoTen,
@@ -509,53 +509,43 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                  4. Chọn Buổi & Tiết Học (Thứ 2 - Thứ 6)
+                  4. Chọn Tiết Học Buổi Chiều (Thứ 2 - Thứ 6)
                 </span>
-                <span className="text-[11px] text-slate-500 font-semibold text-blue-700">Dành riêng cho Giáo viên</span>
+                <span className="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                  Dành riêng cho Giáo viên
+                </span>
               </div>
 
-              {/* Buổi */}
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setBuoi('sáng')}
-                  className={`py-2 px-3 text-xs font-semibold rounded-lg border transition-colors ${
-                    buoi === 'sáng'
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-950 font-bold'
-                      : 'border-slate-200 bg-white text-slate-600'
-                  }`}
-                >
-                  ☀️ Buổi Sáng (07:00 - 11:15)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setBuoi('chiều')}
-                  className={`py-2 px-3 text-xs font-semibold rounded-lg border transition-colors ${
-                    buoi === 'chiều'
-                      ? 'border-emerald-600 bg-emerald-50 text-emerald-950 font-bold'
-                      : 'border-slate-200 bg-white text-slate-600'
-                  }`}
-                >
-                  ⛅ Buổi Chiều (13:00 - 17:15)
-                </button>
+              {/* Fixed session badge */}
+              <div className="flex items-center justify-between px-3 py-2 bg-white border border-slate-200 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                  <span className="text-xs font-bold text-slate-800">⛅ Buổi Chiều (13:30 - 17:35)</span>
+                </div>
+                <span className="text-[11px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  Ca dạy Thể dục chính khóa
+                </span>
               </div>
 
               {/* Tiết học */}
               <div>
                 <div className="grid grid-cols-5 gap-1.5">
                   {([1, 2, 3, 4, 5] as TietHoc[]).map((t) => {
-                    const info = TIET_HOC_INFO[buoi][t];
+                    const info = TIET_HOC_INFO['chiều'][t];
                     const isSelected = tiet === t;
-                    const isThisTietPast = isSlotInThePast(dateVN, { buoi, tiet: t });
+                    const isThisTietPast = isSlotInThePast(dateVN, { buoi: 'chiều', tiet: t });
 
                     return (
                       <button
                         type="button"
                         key={t}
-                        onClick={() => setTiet(t)}
+                        onClick={() => {
+                          setBuoi('chiều');
+                          setTiet(t);
+                        }}
                         className={`p-2 rounded-lg border text-center transition-all ${
                           isSelected
-                            ? 'border-emerald-600 bg-emerald-600 text-white font-bold'
+                            ? 'border-emerald-600 bg-emerald-600 text-white font-bold shadow-xs'
                             : isThisTietPast
                             ? 'border-slate-200 bg-slate-100/80 text-slate-400 opacity-60'
                             : 'border-slate-200 bg-white hover:bg-slate-100 text-slate-700'
@@ -569,8 +559,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     );
                   })}
                 </div>
-                <div className="text-[11px] text-slate-500 mt-1.5 text-right font-mono">
-                  Khung giờ: {TIET_HOC_INFO[buoi][tiet].thoiGian}
+                <div className="mt-2 text-[11px] text-slate-600 font-mono bg-white p-2 rounded border border-slate-200 flex items-center justify-between">
+                  <span>Khung giờ đã chọn: <strong>Tiết {tiet} ({TIET_HOC_INFO['chiều'][tiet]?.thoiGian})</strong></span>
+                  <span className="text-slate-400">45 phút học / tiết (nghỉ giải lao 5 phút)</span>
                 </div>
               </div>
             </div>

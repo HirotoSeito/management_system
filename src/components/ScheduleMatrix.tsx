@@ -189,11 +189,21 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
             </select>
           </div>
 
-          {/* Session filter (for weekdays) */}
-          {!isWeekend && (
+          {/* Session filter */}
+          {!isWeekend ? (
             <div>
               <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
-                Lọc buổi dạy
+                Ca học Thể dục
+              </label>
+              <div className="flex items-center gap-1.5 py-1.5 px-3 bg-blue-50 border border-blue-200 rounded-lg text-xs font-semibold text-blue-900">
+                <span className="w-2 h-2 rounded-full bg-blue-600"></span>
+                <span>Buổi Chiều (Tiết 1 – 5: 13:30 - 17:35)</span>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
+                Lọc khung giờ thuê
               </label>
               <div className="flex gap-1 bg-slate-100 p-0.5 rounded-lg">
                 <button
@@ -216,7 +226,7 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  Sáng
+                  Sáng (7h-10h)
                 </button>
                 <button
                   type="button"
@@ -227,7 +237,7 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                       : 'text-slate-600 hover:text-slate-900'
                   }`}
                 >
-                  Chiều
+                  Chiều (13h-16h30)
                 </button>
               </div>
             </div>
@@ -262,207 +272,21 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
 
       {/* Main Timetable Matrix */}
       {!isWeekend ? (
-        /* Weekday Period Matrix (Tiết 1 - Tiết 5 Sáng & Chiều) */
+        /* Weekday Period Matrix (Chỉ có Buổi Chiều vì Buổi Sáng không dạy Thể dục) */
         <div className="space-y-6">
-          {(selectedSessionFilter === 'all' || selectedSessionFilter === 'sáng') && (
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
-              <div className="bg-slate-50/80 px-5 py-3 border-b border-slate-200 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
-                    Buổi Sáng — Tiết Học 1 Đến 5 (07:00 - 11:15)
-                  </h3>
-                </div>
-                <span className="text-xs text-slate-500">
-                  Giáo viên bộ môn dạy học chính khóa
-                </span>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50/40 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                      <th className="py-3 px-4 w-36 border-r border-slate-200">Tiết học / Giờ</th>
-                      {displayedAreas.map((area) => (
-                        <th key={area.id} className="py-3 px-4 min-w-[230px] border-r border-slate-200 last:border-r-0">
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="text-slate-900 font-bold">{area.tenKhuVuc}</span>
-                            {area.trangThai === 'bảo trì' ? (
-                              <span className="text-[10px] text-rose-800 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
-                                Bảo trì
-                              </span>
-                            ) : area.trangThai === 'ngừng sử dụng' ? (
-                              <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-                                Ngừng
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                                Hoạt động
-                              </span>
-                            )}
-                          </div>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 text-xs">
-                    {([1, 2, 3, 4, 5] as TietHoc[]).map((tiet) => {
-                      const periodInfo = TIET_HOC_INFO['sáng'][tiet];
-                      return (
-                        <tr key={`sang-${tiet}`} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="py-3 px-4 font-semibold text-slate-700 bg-slate-50/30 border-r border-slate-200">
-                            <div>{periodInfo.label}</div>
-                            <div className="text-[11px] font-mono text-slate-500 font-normal">
-                              {periodInfo.thoiGian}
-                            </div>
-                          </td>
-
-                          {displayedAreas.map((area) => {
-                            const slotBooking = bookingsOnDate.find(
-                              (b) => b.idKhuVuc === area.id && b.buoi === 'sáng' && Number(b.tiet) === tiet
-                            );
-
-                            const user = slotBooking ? userMap.get(slotBooking.idNguoiDung) : null;
-                            const isMaintenance = area.trangThai !== 'hoạt động';
-
-                            if (isMaintenance) {
-                              return (
-                                <td
-                                  key={area.id}
-                                  className="p-2 border-r border-slate-200 last:border-r-0 bg-slate-100/70 text-slate-400"
-                                >
-                                  <div className="p-2.5 rounded-lg border border-dashed border-slate-300 text-center text-xs">
-                                    <AlertCircle className="w-3.5 h-3.5 mx-auto mb-1 text-slate-400" />
-                                    <span>Tạm ngưng hoạt động ({area.trangThai})</span>
-                                  </div>
-                                </td>
-                              );
-                            }
-
-                            if (slotBooking) {
-                              const isMyBooking = currentUser ? slotBooking.idNguoiDung === currentUser.id : false;
-                              const lopHoc = slotBooking.lop || (user?.lop ? user.lop : '');
-
-                              return (
-                                <td
-                                  key={area.id}
-                                  className="p-2 border-r border-slate-200 last:border-r-0 align-top"
-                                >
-                                  <div
-                                    onClick={() => onViewBookingDetails(slotBooking)}
-                                    className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all hover:shadow-xs ${
-                                      slotBooking.trangThai === 'đang sử dụng'
-                                        ? 'bg-blue-50/70 border-blue-200'
-                                        : slotBooking.trangThai === 'đã trả'
-                                        ? 'bg-slate-50 border-slate-200 opacity-80'
-                                        : 'bg-amber-50/70 border-amber-200'
-                                    }`}
-                                  >
-                                    <div className="flex items-center justify-between gap-1 mb-1">
-                                      <div className="font-bold text-slate-900 truncate">
-                                        {user?.hoTen || 'Giáo viên'}
-                                      </div>
-                                      {renderStatusBadge(slotBooking.trangThai)}
-                                    </div>
-
-                                    {/* Class information */}
-                                    {lopHoc && (
-                                      <div className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-100/70 px-1.5 py-0.5 rounded my-0.5">
-                                        <GraduationCap className="w-3 h-3" />
-                                        Lớp {lopHoc}
-                                      </div>
-                                    )}
-
-                                    <div className="text-[11px] text-slate-600 line-clamp-1 mt-0.5">
-                                      {slotBooking.mucDichSuDung || 'Giảng dạy thể dục'}
-                                    </div>
-                                    {isMyBooking && (
-                                      <div className="mt-1 text-[10px] font-semibold text-emerald-700 bg-white px-1.5 py-0.5 rounded border border-emerald-200 inline-block">
-                                        Lịch của bạn
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
-                              );
-                            }
-
-                            // Empty slot handling
-                            const isPastSlot = isSlotInThePast(selectedDateVN, { buoi: 'sáng', tiet });
-                            const isStudent = currentUser?.idVaiTro === 'hoc_sinh';
-
-                            if (isPastSlot) {
-                              return (
-                                <td
-                                  key={area.id}
-                                  className="p-2 border-r border-slate-200 last:border-r-0 bg-slate-50/50"
-                                >
-                                  <div className="w-full h-full min-h-[64px] p-2 rounded-lg border border-dashed border-slate-200 bg-slate-100/60 flex flex-col items-center justify-center text-center text-slate-400 select-none">
-                                    <span className="text-[11px] font-medium flex items-center gap-1 text-slate-400">
-                                      <Clock className="w-3 h-3" /> Đã qua giờ
-                                    </span>
-                                    <span className="text-[10px] text-slate-400">
-                                      Tiết {tiet} (Hết hạn)
-                                    </span>
-                                  </div>
-                                </td>
-                              );
-                            }
-
-                            return (
-                              <td
-                                key={area.id}
-                                className="p-2 border-r border-slate-200 last:border-r-0 group"
-                              >
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (isStudent) {
-                                      alert('Quy chế nhà trường: Học sinh không được đại diện đăng ký theo tiết trong tuần. Học sinh chỉ được đăng ký thuê sân vào Thứ 7 và Chủ nhật.');
-                                      return;
-                                    }
-                                    onOpenBooking({
-                                      idKhuVuc: area.id,
-                                      ngaySuDung: selectedDateVN,
-                                      thu: selectedThu,
-                                      buoi: 'sáng',
-                                      tiet: tiet,
-                                    });
-                                  }}
-                                  className="w-full h-full min-h-[64px] p-2 rounded-lg border border-dashed border-emerald-300 bg-emerald-50/20 hover:bg-emerald-50 hover:border-emerald-500 transition-colors flex flex-col items-center justify-center text-center text-emerald-700"
-                                >
-                                  <span className="text-[11px] font-semibold flex items-center gap-1">
-                                    <Plus className="w-3 h-3" /> Còn trống
-                                  </span>
-                                  <span className="text-[10px] text-emerald-600/80">
-                                    {isStudent ? 'Chỉ dành cho GV' : `Bấm mượn tiết ${tiet}`}
-                                  </span>
-                                </button>
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
           {/* Afternoon Session */}
-          {(selectedSessionFilter === 'all' || selectedSessionFilter === 'chiều') && (
-            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
-              <div className="bg-slate-50/80 px-5 py-3 border-b border-slate-200 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                  <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
-                    Buổi Chiều — Tiết Học 1 Đến 5 (13:00 - 17:15)
-                  </h3>
-                </div>
-                <span className="text-xs text-slate-500">
-                  Giáo viên bộ môn dạy ca chiều
-                </span>
+          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+            <div className="bg-slate-50/80 px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+                  Buổi Chiều — Tiết Học 1 Đến 5 (13:30 - 17:35)
+                </h3>
               </div>
+              <span className="text-xs text-slate-500">
+                45 phút / tiết · Giải lao 5 phút giữa các tiết
+              </span>
+            </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -633,7 +457,6 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                 </table>
               </div>
             </div>
-          )}
         </div>
       ) : (
         /* Weekend Hourly Booking View (Thứ 7 & Chủ Nhật) */

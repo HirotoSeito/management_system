@@ -27,11 +27,11 @@ export const TIET_HOC_INFO: Record<BuoiTrongNgay, Record<TietHoc, { label: strin
     5: { label: 'Tiết 5', thoiGian: '10:30 - 11:15' },
   },
   chiều: {
-    1: { label: 'Tiết 1', thoiGian: '13:00 - 13:45' },
-    2: { label: 'Tiết 2', thoiGian: '13:50 - 14:35' },
-    3: { label: 'Tiết 3', thoiGian: '14:50 - 15:35' },
-    4: { label: 'Tiết 4', thoiGian: '15:40 - 16:25' },
-    5: { label: 'Tiết 5', thoiGian: '16:30 - 17:15' },
+    1: { label: 'Tiết 1', thoiGian: '13:30 - 14:15' },
+    2: { label: 'Tiết 2', thoiGian: '14:20 - 15:05' },
+    3: { label: 'Tiết 3', thoiGian: '15:10 - 15:55' },
+    4: { label: 'Tiết 4', thoiGian: '16:00 - 16:45' },
+    5: { label: 'Tiết 5', thoiGian: '16:50 - 17:35' },
   },
 };
 
@@ -296,6 +296,14 @@ export function checkBookingConflict(
   });
 
   if (!isWeekend) {
+    // Rule: School does not teach PE in the morning on weekdays
+    if (buoi === 'sáng') {
+      return {
+        hasConflict: true,
+        reason: 'Quy định nhà trường: Trường THPT Chuyên Lê Quý Đôn không bố trí tiết Thể dục vào buổi sáng (dành cho các môn văn hóa). Giáo viên chỉ đăng ký mượn sân giảng dạy vào Buổi Chiều (Tiết 1 - 5).',
+      };
+    }
+
     // Weekday: must have buoi and tiet
     if (!buoi || !tiet) {
       return { hasConflict: true, reason: 'Vui lòng chọn buổi và tiết học (1-5).' };
