@@ -136,17 +136,20 @@ export const Header: React.FC<HeaderProps> = ({
               Lịch Của Tôi
             </button>
 
-            <button
-              onClick={() => setActiveTab('stats')}
-              className={`px-3 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5 ${
-                activeTab === 'stats'
-                  ? 'bg-emerald-50 text-emerald-800 font-bold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-              }`}
-            >
-              <BarChart3 className="w-4 h-4" />
-              Thống Kê & Báo Cáo
-            </button>
+            {/* BGH & Admin only tab: Statistics */}
+            {(currentUser?.idVaiTro === 'admin' || currentUser?.idVaiTro === 'bgh') && (
+              <button
+                onClick={() => setActiveTab('stats')}
+                className={`px-3 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5 ${
+                  activeTab === 'stats'
+                    ? 'bg-emerald-50 text-emerald-800 font-bold'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                <BarChart3 className="w-4 h-4" />
+                Thống Kê & Báo Cáo
+              </button>
+            )}
 
             {/* Admin only tab */}
             {currentUser?.idVaiTro === 'admin' && (
@@ -320,14 +323,16 @@ export const Header: React.FC<HeaderProps> = ({
           >
             Lịch của tôi
           </button>
-          <button
-            onClick={() => setActiveTab('stats')}
-            className={`px-2.5 py-1 text-xs font-semibold rounded ${
-              activeTab === 'stats' ? 'bg-emerald-100 text-emerald-900' : 'text-slate-600'
-            }`}
-          >
-            Thống kê
-          </button>
+          {(currentUser?.idVaiTro === 'admin' || currentUser?.idVaiTro === 'bgh') && (
+            <button
+              onClick={() => setActiveTab('stats')}
+              className={`px-2.5 py-1 text-xs font-semibold rounded ${
+                activeTab === 'stats' ? 'bg-emerald-100 text-emerald-900' : 'text-slate-600'
+              }`}
+            >
+              Thống kê
+            </button>
+          )}
           {currentUser?.idVaiTro === 'admin' && (
             <button
               onClick={() => setActiveTab('users')}

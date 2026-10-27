@@ -137,6 +137,13 @@ export default function App() {
     }
   }, [bookings]);
 
+  // Statistics tab is restricted to Ban Giám Hiệu and Admin only
+  useEffect(() => {
+    if (activeTab === 'stats' && currentUser?.idVaiTro !== 'admin' && currentUser?.idVaiTro !== 'bgh') {
+      setActiveTab('schedule');
+    }
+  }, [currentUser, activeTab]);
+
   // Reset to default seed
   const handleResetData = () => {
     const defaultUsers = INITIAL_NGUOI_DUNG;
@@ -416,7 +423,7 @@ export default function App() {
           )
         )}
 
-        {activeTab === 'stats' && (
+        {activeTab === 'stats' && (currentUser?.idVaiTro === 'admin' || currentUser?.idVaiTro === 'bgh') && (
           <StatisticsView
             bookings={bookings}
             areas={areas}
