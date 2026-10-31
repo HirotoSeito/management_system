@@ -74,7 +74,7 @@ export default function App() {
     } catch {
       // fallback
     }
-    return users.find((u) => u.id === 'u_gv_nam') || users[0] || null;
+    return null;
   });
 
   const handleLogout = () => {
@@ -152,11 +152,12 @@ export default function App() {
     setUsers(defaultUsers);
     setAreas(defaultAreas);
     setBookings(defaultBookings);
-    setCurrentUser(defaultUsers.find((u) => u.id === 'u_gv_nam') || defaultUsers[0]);
+    setCurrentUser(null);
     localStorage.removeItem('sports_users_lqd');
     localStorage.removeItem('sports_areas_lqd');
     localStorage.removeItem('sports_bookings_lqd');
-    showToast('Đã khôi phục dữ liệu mẫu ban đầu của trường Lê Quý Đôn!', 'info');
+    localStorage.removeItem('sports_current_user_lqd');
+    showToast('Đã khôi phục dữ liệu gốc. Vui lòng đăng nhập tài khoản của bạn.', 'info');
   };
 
   // Handlers for Booking
