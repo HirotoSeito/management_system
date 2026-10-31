@@ -116,7 +116,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
         'Tên đăng nhập': 'hs_minh_tri',
         'Mật khẩu': '123456',
         'Họ và tên': 'Nguyễn Minh Trí',
-        'Vai trò (Học sinh / Giáo viên / Ban giám hiệu / Quản trị viên / Bảo vệ)': 'Học sinh',
+        'Vai trò (Học sinh / Giáo viên / Ban giám hiệu / Quản trị viên)': 'Học sinh',
         'Lớp chuyên (Nếu là học sinh: 10 Toán, 11 Lý,...)': '11 Toán',
         'Số điện thoại': '0912345678',
         'Email': 'tri.nm@lequydon-nt.edu.vn',
@@ -125,19 +125,10 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
         'Tên đăng nhập': 'gv_thanh',
         'Mật khẩu': '123456',
         'Họ và tên': 'Thầy Trần Văn Thành',
-        'Vai trò (Học sinh / Giáo viên / Ban giám hiệu / Quản trị viên / Bảo vệ)': 'Giáo viên',
+        'Vai trò (Học sinh / Giáo viên / Ban giám hiệu / Quản trị viên)': 'Giáo viên',
         'Lớp chuyên (Nếu là học sinh: 10 Toán, 11 Lý,...)': '',
         'Số điện thoại': '0987654321',
         'Email': 'thanhtv@lequydon-nt.edu.vn',
-      },
-      {
-        'Tên đăng nhập': 'bv_hai',
-        'Mật khẩu': '123456',
-        'Họ và tên': 'Bác Hoàng Văn Hải (Tổ Bảo vệ)',
-        'Vai trò (Học sinh / Giáo viên / Ban giám hiệu / Quản trị viên / Bảo vệ)': 'Bảo vệ',
-        'Lớp chuyên (Nếu là học sinh: 10 Toán, 11 Lý,...)': '',
-        'Số điện thoại': '0903334455',
-        'Email': '',
       },
     ];
 
@@ -172,8 +163,6 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
           ? 'Ban giám hiệu'
           : u.idVaiTro === 'giao_vien'
           ? 'Giáo viên'
-          : u.idVaiTro === 'bao_ve'
-          ? 'Bảo vệ'
           : 'Học sinh',
       'Lớp': u.lop || '—',
       'Trạng thái': u.trangThai,
@@ -249,8 +238,6 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
             roleId = 'bgh';
           } else if (roleNormalized.includes('giáo viên') || roleNormalized.includes('gv')) {
             roleId = 'giao_vien';
-          } else if (roleNormalized.includes('bảo vệ') || roleNormalized.includes('bv') || roleNormalized.includes('guard')) {
-            roleId = 'bao_ve';
           } else {
             roleId = 'hoc_sinh';
           }
@@ -308,8 +295,6 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
         return { label: 'Giáo viên', icon: Award, color: 'text-blue-800 bg-blue-50' };
       case 'hoc_sinh':
         return { label: 'Học sinh', icon: GraduationCap, color: 'text-emerald-800 bg-emerald-50' };
-      case 'bao_ve':
-        return { label: 'Bảo vệ', icon: ShieldCheck, color: 'text-amber-900 bg-amber-100' };
     }
   };
 
@@ -324,7 +309,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
               Quản Trị Người Dùng & Phân Quyền
             </h1>
             <p className="text-xs text-slate-500 mt-1">
-              Dành cho Quản trị viên: Nhập hàng loạt từ Excel, cấp tài khoản, phân quyền (Quản trị, BGH, Giáo viên, Học sinh, Bảo vệ), khóa và xóa tài khoản.
+              Dành cho Quản trị viên: Nhập hàng loạt từ Excel, cấp tài khoản, phân quyền (Quản trị, BGH, Giáo viên, Học sinh), khóa và xóa tài khoản.
             </p>
           </div>
 
@@ -401,7 +386,6 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
               <option value="bgh">Ban giám hiệu</option>
               <option value="giao_vien">Giáo viên</option>
               <option value="hoc_sinh">Học sinh</option>
-              <option value="bao_ve">Bảo vệ</option>
             </select>
           </div>
 
@@ -644,7 +628,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                     required
                     value={tenDangNhap}
                     onChange={(e) => setTenDangNhap(e.target.value)}
-                    placeholder="VD: gv_linh, baove_tam"
+                    placeholder="VD: gv_linh, hs_an"
                     className="w-full text-xs font-mono border border-slate-300 rounded-lg px-3 py-2 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-slate-500/20"
                   />
                 </div>
@@ -675,7 +659,6 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                 >
                   <option value="hoc_sinh">Học sinh (Thuê theo giờ cuối tuần)</option>
                   <option value="giao_vien">Giáo viên (Mượn theo tiết dạy học)</option>
-                  <option value="bao_ve">Bảo vệ (Trực cổng, thu tiền & hoàn trả sân)</option>
                   <option value="bgh">Ban giám hiệu (Quản lý khu vực & thống kê)</option>
                   <option value="admin">Quản trị viên (Toàn quyền)</option>
                 </select>

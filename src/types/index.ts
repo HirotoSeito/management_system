@@ -8,11 +8,11 @@
  * 4. dangKy
  */
 
-export type VaiTroId = 'admin' | 'bgh' | 'giao_vien' | 'hoc_sinh' | 'bao_ve';
+export type VaiTroId = 'admin' | 'bgh' | 'giao_vien' | 'hoc_sinh';
 
 export interface VaiTro {
   id: VaiTroId;
-  tenVaiTro: 'Quản trị viên' | 'Ban giám hiệu' | 'Giáo viên' | 'Học sinh' | 'Bảo vệ';
+  tenVaiTro: 'Quản trị viên' | 'Ban giám hiệu' | 'Giáo viên' | 'Học sinh';
 }
 
 export type TrangThaiNguoiDung = 'hoạt động' | 'bị khóa';
@@ -62,10 +62,6 @@ export interface DangKy {
   gioKetThuc?: string; // HH:mm (cho học sinh T7, CN)
   trangThai: TrangThaiDangKy;
   thoiGianTra?: string | null; // Thời điểm thực tế trả khu vực (VD: "10:35 18/10/2026")
-  thoiGianNhanSan?: string | null; // Thời điểm bảo vệ check-in mở cổng vào sân
-  daThuTien?: boolean; // Bảo vệ đã thu tiền mặt trực tiếp tại trường cho lượt thuê cuối tuần
-  nguoiThuTien?: string; // Tên bảo vệ xác nhận thu tiền
-  ghiChuBaoVe?: string; // Ghi chú tình trạng cơ sở vật chất bàn giao / trả sân của bảo vệ
   mucDichSuDung?: string; // VD: Giảng dạy môn Bóng đá lớp 11 Toán, Tập luyện CLB
   tongTien?: number; // Giá thuê tính theo giờ cho học sinh
 }

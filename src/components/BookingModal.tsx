@@ -224,9 +224,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       gioKetThuc: isWeekend ? gioKetThuc : undefined,
       trangThai: initialBooking?.trangThai || 'đã đăng ký',
       thoiGianTra: initialBooking?.thoiGianTra || null,
-      thoiGianNhanSan: initialBooking?.thoiGianNhanSan || null,
-      daThuTien: initialBooking?.daThuTien || false,
-      nguoiThuTien: initialBooking?.nguoiThuTien,
       mucDichSuDung:
         mucDichSuDung.trim() ||
         (isWeekend

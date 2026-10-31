@@ -22,8 +22,8 @@ import {
 interface HeaderProps {
   currentUser: NguoiDung | null;
   users: NguoiDung[];
-  activeTab: 'schedule' | 'booking' | 'my-bookings' | 'stats' | 'users' | 'facilities' | 'security';
-  setActiveTab: (tab: 'schedule' | 'booking' | 'my-bookings' | 'stats' | 'users' | 'facilities' | 'security') => void;
+  activeTab: 'schedule' | 'booking' | 'my-bookings' | 'stats' | 'users' | 'facilities';
+  setActiveTab: (tab: 'schedule' | 'booking' | 'my-bookings' | 'stats' | 'users' | 'facilities') => void;
   onOpenLoginModal: () => void;
   onLogout: () => void;
 }
@@ -72,8 +72,6 @@ export const Header: React.FC<HeaderProps> = ({
         return { label: 'Giáo viên bộ môn', icon: Award, color: 'text-blue-800 bg-blue-50 border-blue-200' };
       case 'hoc_sinh':
         return { label: 'Học sinh', icon: GraduationCap, color: 'text-emerald-800 bg-emerald-50 border-emerald-200' };
-      case 'bao_ve':
-        return { label: 'Bảo vệ trường', icon: ShieldCheck, color: 'text-amber-900 bg-amber-100 border-amber-300' };
     }
   };
 
@@ -178,21 +176,6 @@ export const Header: React.FC<HeaderProps> = ({
               >
                 <Building2 className="w-4 h-4" />
                 Khu Vực (BGH)
-              </button>
-            )}
-
-            {/* Security Guard tab: Bao Ve, Admin, BGH */}
-            {(currentUser?.idVaiTro === 'bao_ve' || currentUser?.idVaiTro === 'admin' || currentUser?.idVaiTro === 'bgh') && (
-              <button
-                onClick={() => setActiveTab('security')}
-                className={`px-3 py-2 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap flex items-center gap-1.5 ${
-                  activeTab === 'security'
-                    ? 'bg-amber-100 text-amber-900 font-bold border border-amber-300'
-                    : 'text-amber-800 hover:bg-amber-50 hover:text-amber-900'
-                }`}
-              >
-                <ShieldCheck className="w-4 h-4 text-amber-600" />
-                Ca Trực Bảo Vệ
               </button>
             )}
           </nav>
@@ -351,16 +334,6 @@ export const Header: React.FC<HeaderProps> = ({
               }`}
             >
               Khu vực
-            </button>
-          )}
-          {(currentUser?.idVaiTro === 'bao_ve' || currentUser?.idVaiTro === 'admin' || currentUser?.idVaiTro === 'bgh') && (
-            <button
-              onClick={() => setActiveTab('security')}
-              className={`px-2 py-1 text-xs font-semibold rounded ${
-                activeTab === 'security' ? 'bg-amber-200 text-amber-950 font-bold' : 'text-amber-800'
-              }`}
-            >
-              Ca trực
             </button>
           )}
         </div>

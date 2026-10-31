@@ -23,7 +23,6 @@ Nhà trường có các khu vực thể thao gồm:
 - **Vào thứ 7 và Chủ nhật**: Học sinh thuê và trả khu vực theo giờ để vui chơi, giải trí (khung giờ quy định: Sáng 07:00 – 10:00, Chiều 13:00 – 16:30).
 - **Kiểm soát thời gian thực**: Hiển thị đồng hồ thời gian thực (Live clock). Các tiết học hoặc khung giờ đã trôi qua trong quá khứ so với thời điểm hiện tại sẽ bị khóa, không cho phép đăng ký.
 - **Tìm kiếm người đại diện kiểu Google**: Khi đăng ký, người dùng nhập tên/username hoặc lớp của học sinh đại diện; hệ thống tự động kiểm tra và gợi ý trực tiếp (autocomplete), đồng thời tự động điền lớp học sinh, loại bỏ thao tác chọn lớp thủ công.
-- **Bảo vệ trực cổng**: Quản lý học sinh vào trường cuối tuần, check-in mở cổng vào sân, thu tiền mặt trực tiếp tại trường, kiểm tra tình trạng cơ sở vật chất và xác nhận nhận lại sân.
 
 ---
 
@@ -37,20 +36,15 @@ Nhà trường có các khu vực thể thao gồm:
    - Chặn tuyệt đối trùng lịch và chặn đăng ký lùi về thời gian quá khứ.
 3. **Quản lý lịch cá nhân, chỉnh sửa, hủy và trả sân**:
    - Người dùng xem lịch của mình, hủy lịch chưa sử dụng, bấm xác nhận trả sân ghi nhận mốc thời gian thực tế.
-4. **Bảng điều khiển Ca trực Bảo vệ**:
-   - Theo dõi các ca mượn sân hôm nay tại trường.
-   - Thao tác check-in mở cổng cho học sinh/giáo viên nhận sân.
-   - Thu tiền thuê trực tiếp bằng tiền mặt tại cổng trường (ghi nhận đã thu, số tiền, người thu).
-   - Kiểm tra tình trạng thiết bị (vợt, lưới, bóng, đèn) và ghi chú hoàn trả sân.
-5. **Thống kê & Xuất Excel (.xlsx)**:
+4. **Thống kê & Xuất Excel (.xlsx)**:
    - Thống kê theo ngày, tuần, tháng, học kỳ theo từng khu vực và từng người dùng (số lượt, thời gian, doanh thu).
    - Xuất dữ liệu thống kê ra file Excel đa sheet chuẩn đẹp.
-6. **Quản trị người dùng & Phân quyền (Admin)**:
-   - Cấp tài khoản mới, phân quyền: Quản trị viên, Ban giám hiệu, Giáo viên, Học sinh, Bảo vệ.
+5. **Quản trị người dùng & Phân quyền (Admin)**:
+   - Cấp tài khoản mới, phân quyền: Quản trị viên, Ban giám hiệu, Giáo viên, Học sinh.
    - Khóa / mở khóa tài khoản, xóa tài khoản.
    - **Nhập hàng loạt tài khoản từ file Excel (.xlsx)** kèm tính năng tải file Excel mẫu và kiểm tra lỗi dữ liệu.
    - Xuất danh sách tài khoản toàn trường ra Excel.
-7. **Quản lý cơ sở vật chất (Ban giám hiệu)**:
+6. **Quản lý cơ sở vật chất (Ban giám hiệu)**:
    - Thay đổi trạng thái khu vực (hoạt động, bảo trì, ngừng sử dụng).
    - Điều chỉnh giá thuê mỗi giờ, thêm khu vực mới, bỏ khu vực hiện có.
 
@@ -73,8 +67,8 @@ Nhà trường có các khu vực thể thao gồm:
 ### Bảng `vaiTro`:
 | TT | Trường | Khóa | Giải thích |
 | :--- | :--- | :--- | :--- |
-| 1 | `id` | Khóa chính | Mã vai trò (`admin`, `bgh`, `giao_vien`, `hoc_sinh`, `bao_ve`) |
-| 2 | `tenVaiTro` | | Tên vai trò (Quản trị viên, Ban giám hiệu, Giáo viên, Học sinh, Bảo vệ) |
+| 1 | `id` | Khóa chính | Mã vai trò (`admin`, `bgh`, `giao_vien`, `hoc_sinh`) |
+| 2 | `tenVaiTro` | | Tên vai trò (Quản trị viên, Ban giám hiệu, Giáo viên, Học sinh) |
 
 ### Bảng `khuVuc`:
 | TT | Trường | Khóa | Giải thích |
@@ -100,10 +94,6 @@ Nhà trường có các khu vực thể thao gồm:
 | 11 | `gioKetThuc` | | Giờ kết thúc dành cho học sinh thuê T7, CN |
 | 12 | `trangThai` | | Trạng thái đăng ký (đã đăng ký, đang sử dụng, đã trả, đã hủy) |
 | 13 | `thoiGianTra` | | Thời điểm thực tế trả khu vực |
-| 14 | `thoiGianNhanSan` | | Thời điểm bảo vệ mở cổng cho nhận sân |
-| 15 | `daThuTien` | | Bảo vệ đã thu tiền mặt trực tiếp tại trường |
-| 16 | `nguoiThuTien` | | Tên bảo vệ xác nhận thu tiền |
-| 17 | `ghiChuBaoVe` | | Ghi chú kiểm tra tình trạng CSVC khi bàn giao |
 
 ---
 
@@ -115,7 +105,6 @@ Nhà trường có các khu vực thể thao gồm:
 | **Ban giám hiệu** | `bgh_minh` | `bgh123` | Thầy Nguyễn Văn Minh | Phó Hiệu Trưởng |
 | **Giáo viên** | `gv_nam` | `gv123` | Thầy Nguyễn Văn Nam | Tổ Thể dục - GDQP |
 | **Giáo viên** | `gv_mai` | `gv123` | Cô Trần Thị Mai | Tổ Thể dục - GDQP |
-| **Bảo vệ** | `baove_tam` | `bv123` | Bác Lê Văn Tám | Tổ Bảo vệ nhà trường |
 | **Học sinh** | `hs_an` | `hs123` | Lê Văn An | Lớp 11 Toán |
 | **Học sinh** | `hs_binh` | `hs123` | Phạm Thị Bình | Lớp 12 Lý |
 | **Học sinh** | `hs_dung` | `hs123` | Đỗ Hoàng Dũng | Lớp 10 Tin |

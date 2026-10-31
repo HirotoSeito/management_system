@@ -85,28 +85,28 @@ test('checkBookingConflict: detects teacher weekday period clash', () => {
     id: 'bk_1',
     idNguoiDung: 'user_gv1',
     idKhuVuc: 'kv_bd',
-    ngaySuDung: '19/10/2026',
+    ngaySuDung: '16/11/2026',
     thu: 'Thứ 2',
-    buoi: 'sáng',
+    buoi: 'chiều',
     tiet: 2,
     trangThai: 'đã đăng ký',
   };
 
   // Attempting to book the same area, same date, same buoi, same tiet
   const resultClash = checkBookingConflict([existingBooking], area, {
-    ngaySuDung: '19/10/2026',
+    ngaySuDung: '16/11/2026',
     thu: 'Thứ 2',
-    buoi: 'sáng',
+    buoi: 'chiều',
     tiet: 2,
   });
   assert.equal(resultClash.hasConflict, true);
   assert.match(resultClash.reason || '', /Trùng lịch/);
 
-  // Different period (Tiết 3) on the same morning -> Allowed!
+  // Different period (Tiết 3) on the same afternoon -> Allowed!
   const resultValid = checkBookingConflict([existingBooking], area, {
-    ngaySuDung: '19/10/2026',
+    ngaySuDung: '16/11/2026',
     thu: 'Thứ 2',
-    buoi: 'sáng',
+    buoi: 'chiều',
     tiet: 3,
   });
   assert.equal(resultValid.hasConflict, false);
@@ -119,9 +119,9 @@ test('checkBookingConflict: detects teacher weekday period clash', () => {
     trangThai: 'đã hủy',
   };
   const resultCancelled = checkBookingConflict([cancelledBooking], area, {
-    ngaySuDung: '19/10/2026',
+    ngaySuDung: '16/11/2026',
     thu: 'Thứ 2',
-    buoi: 'sáng',
+    buoi: 'chiều',
     tiet: 4,
   });
   assert.equal(resultCancelled.hasConflict, false);
@@ -139,28 +139,28 @@ test('checkBookingConflict: detects student weekend hourly overlap', () => {
     id: 'bk_pb_1',
     idNguoiDung: 'user_hs1',
     idKhuVuc: 'kv_pb',
-    ngaySuDung: '24/10/2026',
+    ngaySuDung: '21/11/2026',
     thu: 'Thứ 7',
     gioBatDau: '08:00',
     gioKetThuc: '10:00',
     trangThai: 'đã đăng ký',
   };
 
-  // Overlap: 09:00 to 11:00
+  // Overlap: 09:00 to 10:00 (within allowed morning window 07:00 - 10:00)
   const resultOverlap = checkBookingConflict([existingBooking], area, {
-    ngaySuDung: '24/10/2026',
+    ngaySuDung: '21/11/2026',
     thu: 'Thứ 7',
     gioBatDau: '09:00',
-    gioKetThuc: '11:00',
+    gioKetThuc: '10:00',
   });
   assert.equal(resultOverlap.hasConflict, true);
 
-  // Adjacent: 10:00 to 12:00 -> Allowed!
+  // Non-overlap on afternoon slot: 13:00 to 15:00 -> Allowed!
   const resultNonOverlap = checkBookingConflict([existingBooking], area, {
-    ngaySuDung: '24/10/2026',
+    ngaySuDung: '21/11/2026',
     thu: 'Thứ 7',
-    gioBatDau: '10:00',
-    gioKetThuc: '12:00',
+    gioBatDau: '13:00',
+    gioKetThuc: '15:00',
   });
   assert.equal(resultNonOverlap.hasConflict, false);
 });

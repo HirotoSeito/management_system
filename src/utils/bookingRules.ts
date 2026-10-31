@@ -497,8 +497,6 @@ export function aggregateStatistics(
         ? 'Ban giám hiệu'
         : u.idVaiTro === 'giao_vien'
         ? 'Giáo viên'
-        : u.idVaiTro === 'bao_ve'
-        ? 'Bảo vệ'
         : 'Học sinh';
 
     return {
