@@ -30,12 +30,14 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "autoprefixer": "^10.4.21",
-    "esbuild": "0.28.0",
+    "esbuild": "^0.28.2",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
     "typescript": "^7.0.2"
   },
   "overrides": {
-    "esbuild": "0.28.0"
+    "esbuild": "^0.28.2",
+    "body-parser": "^1.20.9",
+    "uuid": "^11.1.1"
   }
 }
