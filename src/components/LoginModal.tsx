@@ -1,19 +1,17 @@
 import React, { useState } from 'react';
-import { NguoiDung } from '../types/index.ts';
+import type { NguoiDung } from '../types/index.ts';
 import { School, Lock, User, AlertCircle, X, Shield, ArrowRight } from 'lucide-react';
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose?: () => void;
-  users: NguoiDung[];
-  onLoginSuccess: (user: NguoiDung) => void;
+  onLoginSuccess: (user: NguoiDung, token: string) => void;
   canClose?: boolean;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
   isOpen,
   onClose,
-  users,
   onLoginSuccess,
   canClose = true,
 }) => {
@@ -22,37 +20,35 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [errorMsg, setErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
     setIsSubmitting(true);
 
-    const cleanUsername = username.trim().toLowerCase();
-    const targetUser = users.find(
-      (u) => u.tenDangNhap.toLowerCase() === cleanUsername
-    );
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenDangNhap: username.trim().toLowerCase(),
+          matKhau: password,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Đăng nhập thất bại. Vui lòng kiểm tra lại.');
+        setIsSubmitting(false);
+        return;
+      }
 
-    if (!targetUser) {
-      setErrorMsg('Tên đăng nhập không tồn tại trong hệ thống nhà trường.');
+      setPassword('');
       setIsSubmitting(false);
-      return;
-    }
-
-    if (targetUser.trangThai === 'bị khóa') {
-      setErrorMsg('Tài khoản của bạn đã bị khóa. Vui lòng liên hệ Quản trị viên để được mở khóa.');
+      onLoginSuccess(data.user, data.token);
+      if (onClose) onClose();
+    } catch {
+      setErrorMsg('Không thể kết nối đến máy chủ xác thực. Vui lòng thử lại.');
       setIsSubmitting(false);
-      return;
     }
-
-    if (targetUser.matKhau !== password) {
-      setErrorMsg('Mật khẩu không chính xác. Vui lòng thử lại.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    setIsSubmitting(false);
-    onLoginSuccess(targetUser);
-    if (onClose) onClose();
   };
 
   if (!isOpen) return null;
@@ -141,7 +137,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               disabled={isSubmitting}
               className="w-full mt-2 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold rounded-xl shadow-xs hover:shadow-md transition-all text-xs flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
             >
-              <span>Đăng Nhập</span>
+              <span>{isSubmitting ? 'Đang xác thực...' : 'Đăng Nhập'}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>

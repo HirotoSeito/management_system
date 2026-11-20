@@ -76,12 +76,12 @@ Nhà trường có các khu vực thể thao gồm:
 | 5 | `thu` | | Thứ trong tuần (Thứ 2 đến Chủ nhật) |
 | 6 | `buoi` | | Buổi trong ngày (sáng, chiều) |
 | 7 | `tiet` | | Tiết học (1, 2, 3, 4, 5) dành cho giáo viên T2 đến T6 |
-| 8 | `lop` | | Lớp học sinh sử dụng sân (tự động điền từ học sinh đại diện) |
-| 9 | `nguoiDaiDienTen` | | Tên học sinh hoặc người đại diện nhận sân |
-| 10 | `nguoiDaiDienId` | | ID tài khoản người đại diện |
+| 8 | `lop` | | Lớp sử dụng sân (giáo viên chọn trực tiếp lớp dạy trong tuần; học sinh dùng lớp của tài khoản cuối tuần) |
+| 9 | `nguoiDaiDienTen` | | Tên học sinh thuê cuối tuần (nếu có) |
+| 10 | `nguoiDaiDienId` | | ID tài khoản học sinh thuê cuối tuần (nếu có) |
 | 11 | `gioBatDau` | | Giờ bắt đầu thuê vào T7, CN (07:00–10:00 hoặc 13:00–16:30) |
 | 12 | `gioKetThuc` | | Giờ kết thúc thuê vào T7, CN |
-| 13 | `trangThai` | | Trạng thái lượt đăng ký (đã đăng ký, đang sử dụng, đã trả, đã hủy) |
+| 13 | `trangThai` | | Trạng thái lượt đăng ký (`đã đăng ký`, `đang sử dụng`, `đã trả`, `đã hủy`, `quá hạn`) |
 | 14 | `thoiGianTra` | | Mốc thời gian thực tế người dùng xác nhận trả sân (VD: 16:45 25/10/2026) |
 | 15 | `mucDichSuDung` | | Mục đích sử dụng (dạy học chính khóa, tập luyện CLB, thi đấu) |
 | 16 | `tongTien` | | Tổng chi phí thuê theo giờ cuối tuần (đồng) |
@@ -240,7 +240,7 @@ Người dùng có thể bấm nút **Đăng Nhập** ở góc trên bên phải
 
 ### D. Các thao tác chính khi sử dụng trên Windows:
 1. **Xem lịch thể thao**: Người dùng xem ma trận thời khóa biểu theo ngày, kiểm tra các ô màu xanh (sân trống), ô màu xám (đã mượn), ô màu cam (bảo trì).
-2. **Đăng ký mượn/thuê**: Bấm vào ô trống trên lịch hoặc bấm nút **Đăng Ký Mượn/Thuê** trên thanh menu; nhập thông tin lớp hoặc tìm kiếm tên học sinh đại diện; bấm Lưu.
+2. **Đăng ký mượn/thuê**: Bấm vào ô trống trên lịch hoặc bấm nút **Đăng Ký Mượn/Thuê** trên thanh menu; giáo viên chọn lớp dạy trong tuần hoặc học sinh chọn khung giờ cuối tuần; bấm Xác Nhận Đăng Ký.
 3. **Quản lý lịch của tôi**: Bấm mục **Lịch Của Tôi** để chỉnh sửa, hủy lịch mượn hoặc bấm **Xác nhận trả sân** khi dùng xong.
 4. **Thống kê & Xuất Excel** *(Dành cho BGH / Admin)*: Vào mục **Thống Kê & Báo Cáo** để xem biểu đồ, lọc theo ngày/tuần/tháng và bấm **Xuất Báo Cáo Excel (.xlsx)** để lưu file trực tiếp về máy tính Windows.
 5. **Quản lý người dùng & Nhập Excel** *(Dành cho Admin)*: Vào mục **Tài Khoản (Admin)** để nạp danh sách tài khoản hàng loạt từ file Excel hoặc cấp tài khoản mới.

@@ -1,15 +1,23 @@
 import React, { useState } from 'react';
-import { KhuVuc, DangKy, NguoiDung, TietHoc, BuoiTrongNgay, ThuTrongTuan } from '../types/index.ts';
+import type { KhuVuc, DangKy, NguoiDung, TietHoc } from '../types/index.ts';
 import {
-  formatDateToVN,
   isoDateToVN,
-  vnDateToIso,
   getThuTrongTuan,
   isCuoiTuan,
   isSlotInThePast,
+  isBookingOverdueReturn,
+  getEffectiveWeekendInterval,
   TIET_HOC_INFO,
 } from '../utils/bookingRules.ts';
-import { Calendar, Filter, Clock, CheckCircle2, User, AlertCircle, Plus, Info, GraduationCap } from 'lucide-react';
+import {
+  Calendar,
+  Clock,
+  CheckCircle2,
+  AlertCircle,
+  Plus,
+  GraduationCap,
+  AlertTriangle,
+} from 'lucide-react';
 
 interface ScheduleMatrixProps {
   areas: KhuVuc[];
@@ -18,6 +26,7 @@ interface ScheduleMatrixProps {
   currentUser: NguoiDung | null;
   onOpenBooking: (prefill?: Partial<DangKy>) => void;
   onViewBookingDetails: (booking: DangKy) => void;
+  onNotify: (msg: string, type?: 'success' | 'info' | 'error') => void;
 }
 
 export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
@@ -27,6 +36,7 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   currentUser,
   onOpenBooking,
   onViewBookingDetails,
+  onNotify,
 }) => {
   const [selectedDateIso, setSelectedDateIso] = useState<string>(() => {
     const today = new Date();
@@ -42,6 +52,7 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
   const selectedDateVN = isoDateToVN(selectedDateIso);
   const selectedThu = getThuTrongTuan(selectedDateVN);
   const isWeekend = isCuoiTuan(selectedThu);
+  const now = new Date();
 
   const handleQuickDate = (offsetDays: number) => {
     const target = new Date();
@@ -63,8 +74,10 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
     (b) => b.ngaySuDung === selectedDateVN && b.trangThai !== 'đã hủy'
   );
 
-  const renderStatusBadge = (status: DangKy['trangThai']) => {
-    switch (status) {
+  const renderStatusBadge = (booking: DangKy) => {
+    const overdue = isBookingOverdueReturn(booking, now);
+
+    switch (booking.trangThai) {
       case 'đã đăng ký':
         return (
           <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
@@ -72,7 +85,11 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
           </span>
         );
       case 'đang sử dụng':
-        return (
+        return overdue ? (
+          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-800 bg-rose-50 px-2 py-0.5 rounded border border-rose-300">
+            <AlertTriangle className="w-3 h-3" /> Quá giờ trả!
+          </span>
+        ) : (
           <span className="inline-flex items-center gap-1 text-[11px] font-medium text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span> Đang sử dụng
           </span>
@@ -81,6 +98,12 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
         return (
           <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
             <CheckCircle2 className="w-3 h-3" /> Đã trả
+          </span>
+        );
+      case 'quá hạn':
+        return (
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+            <AlertCircle className="w-3 h-3" /> Quá hạn
           </span>
         );
       default:
@@ -127,7 +150,6 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
 
         {/* Filter Toolbar */}
         <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 items-center">
-          {/* Date Picker */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
               Chọn ngày xem lịch
@@ -140,7 +162,6 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
             />
           </div>
 
-          {/* Quick Dates */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
               Chuyển nhanh ngày
@@ -170,7 +191,6 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
             </div>
           </div>
 
-          {/* Area Filter */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
               Lọc theo khu vực
@@ -189,7 +209,6 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
             </select>
           </div>
 
-          {/* Session filter */}
           {!isWeekend ? (
             <div>
               <label className="block text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-1">
@@ -249,7 +268,7 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
           <span className="font-semibold text-slate-700">Trạng thái:</span>
           <span className="inline-flex items-center gap-1.5">
             <span className="w-3 h-3 rounded bg-emerald-50 border border-emerald-300"></span>
-            Còn trống (Có thể đăng ký)
+            Còn trống
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="w-3 h-3 rounded bg-amber-50 border border-amber-300"></span>
@@ -265,16 +284,14 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
           </span>
           <span className="inline-flex items-center gap-1.5">
             <span className="w-3 h-3 rounded bg-rose-50 border border-rose-300"></span>
-            Bảo trì / Ngừng sử dụng
+            Bảo trì / Quá hạn
           </span>
         </div>
       </div>
 
       {/* Main Timetable Matrix */}
       {!isWeekend ? (
-        /* Weekday Period Matrix (Chỉ có Buổi Chiều vì Buổi Sáng không dạy Thể dục) */
         <div className="space-y-6">
-          {/* Afternoon Session */}
           <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
             <div className="bg-slate-50/80 px-5 py-3 border-b border-slate-200 flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -288,181 +305,202 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
               </span>
             </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-200 bg-slate-50/40 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-                      <th className="py-3 px-4 w-36 border-r border-slate-200">Tiết học / Giờ</th>
-                      {displayedAreas.map((area) => (
-                        <th key={area.id} className="py-3 px-4 min-w-[230px] border-r border-slate-200 last:border-r-0">
-                          <div className="flex items-center justify-between gap-1">
-                            <span className="text-slate-900 font-bold">{area.tenKhuVuc}</span>
-                            {area.trangThai === 'bảo trì' ? (
-                              <span className="text-[10px] text-rose-800 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
-                                Bảo trì
-                              </span>
-                            ) : area.trangThai === 'ngừng sử dụng' ? (
-                              <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-                                Ngừng
-                              </span>
-                            ) : (
-                              <span className="text-[10px] text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
-                                Hoạt động
-                              </span>
-                            )}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/40 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                    <th className="py-3 px-4 w-36 border-r border-slate-200">Tiết học / Giờ</th>
+                    {displayedAreas.map((area) => (
+                      <th key={area.id} className="py-3 px-4 min-w-[230px] border-r border-slate-200 last:border-r-0">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-slate-900 font-bold">{area.tenKhuVuc}</span>
+                          {area.trangThai === 'bảo trì' ? (
+                            <span className="text-[10px] text-rose-800 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                              Bảo trì
+                            </span>
+                          ) : area.trangThai === 'ngừng sử dụng' ? (
+                            <span className="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                              Ngừng
+                            </span>
+                          ) : (
+                            <span className="text-[10px] text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                              Hoạt động
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 text-xs">
+                  {([1, 2, 3, 4, 5] as TietHoc[]).map((tiet) => {
+                    const periodInfo = TIET_HOC_INFO['chiều'][tiet];
+                    return (
+                      <tr key={`chieu-${tiet}`} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-3 px-4 font-semibold text-slate-700 bg-slate-50/30 border-r border-slate-200">
+                          <div>{periodInfo.label}</div>
+                          <div className="text-[11px] font-mono text-slate-500 font-normal">
+                            {periodInfo.thoiGian}
                           </div>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-200 text-xs">
-                    {([1, 2, 3, 4, 5] as TietHoc[]).map((tiet) => {
-                      const periodInfo = TIET_HOC_INFO['chiều'][tiet];
-                      return (
-                        <tr key={`chieu-${tiet}`} className="hover:bg-slate-50/50 transition-colors">
-                          <td className="py-3 px-4 font-semibold text-slate-700 bg-slate-50/30 border-r border-slate-200">
-                            <div>{periodInfo.label}</div>
-                            <div className="text-[11px] font-mono text-slate-500 font-normal">
-                              {periodInfo.thoiGian}
-                            </div>
-                          </td>
+                        </td>
 
-                          {displayedAreas.map((area) => {
-                            const slotBooking = bookingsOnDate.find(
-                              (b) => b.idKhuVuc === area.id && b.buoi === 'chiều' && Number(b.tiet) === tiet
-                            );
+                        {displayedAreas.map((area) => {
+                          // Prioritize non-overdue active/returned bookings over overdue no-shows if slot was re-booked
+                          const slotBookings = bookingsOnDate.filter(
+                            (b) => b.idKhuVuc === area.id && b.buoi === 'chiều' && Number(b.tiet) === tiet
+                          );
+                          const slotBooking =
+                            slotBookings.find((b) => b.trangThai !== 'quá hạn') || slotBookings[0];
 
-                            const user = slotBooking ? userMap.get(slotBooking.idNguoiDung) : null;
-                            const isMaintenance = area.trangThai !== 'hoạt động';
+                          const user = slotBooking ? userMap.get(slotBooking.idNguoiDung) : null;
+                          const isMaintenance = area.trangThai !== 'hoạt động';
 
-                            if (isMaintenance) {
-                              return (
-                                <td
-                                  key={area.id}
-                                  className="p-2 border-r border-slate-200 last:border-r-0 bg-slate-100/70 text-slate-400"
-                                >
-                                  <div className="p-2.5 rounded-lg border border-dashed border-slate-300 text-center text-xs">
-                                    <AlertCircle className="w-3.5 h-3.5 mx-auto mb-1 text-slate-400" />
-                                    <span>Tạm ngưng ({area.trangThai})</span>
-                                  </div>
-                                </td>
-                              );
-                            }
-
-                            if (slotBooking) {
-                              const isMyBooking = currentUser ? slotBooking.idNguoiDung === currentUser.id : false;
-                              const lopHoc = slotBooking.lop || (user?.lop ? user.lop : '');
-
-                              return (
-                                <td
-                                  key={area.id}
-                                  className="p-2 border-r border-slate-200 last:border-r-0 align-top"
-                                >
-                                  <div
-                                    onClick={() => onViewBookingDetails(slotBooking)}
-                                    className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all hover:shadow-xs ${
-                                      slotBooking.trangThai === 'đang sử dụng'
-                                        ? 'bg-blue-50/70 border-blue-200'
-                                        : slotBooking.trangThai === 'đã trả'
-                                        ? 'bg-slate-50 border-slate-200 opacity-80'
-                                        : 'bg-amber-50/70 border-amber-200'
-                                    }`}
-                                  >
-                                    <div className="flex items-center justify-between gap-1 mb-1">
-                                      <div className="font-bold text-slate-900 truncate">
-                                        {user?.hoTen || 'Giáo viên'}
-                                      </div>
-                                      {renderStatusBadge(slotBooking.trangThai)}
-                                    </div>
-
-                                    {/* Class information */}
-                                    {lopHoc && (
-                                      <div className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-100/70 px-1.5 py-0.5 rounded my-0.5">
-                                        <GraduationCap className="w-3 h-3" />
-                                        Lớp {lopHoc}
-                                      </div>
-                                    )}
-
-                                    <div className="text-[11px] text-slate-600 line-clamp-1 mt-0.5">
-                                      {slotBooking.mucDichSuDung || 'Giảng dạy thể dục'}
-                                    </div>
-                                    {isMyBooking && (
-                                      <div className="mt-1 text-[10px] font-semibold text-emerald-700 bg-white px-1.5 py-0.5 rounded border border-emerald-200 inline-block">
-                                        Lịch của bạn
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
-                              );
-                            }
-
-                            // Empty slot handling
-                            const isPastSlot = isSlotInThePast(selectedDateVN, { buoi: 'chiều', tiet });
-                            const isStudent = currentUser?.idVaiTro === 'hoc_sinh';
-
-                            if (isPastSlot) {
-                              return (
-                                <td
-                                  key={area.id}
-                                  className="p-2 border-r border-slate-200 last:border-r-0 bg-slate-50/50"
-                                >
-                                  <div className="w-full h-full min-h-[64px] p-2 rounded-lg border border-dashed border-slate-200 bg-slate-100/60 flex flex-col items-center justify-center text-center text-slate-400 select-none">
-                                    <span className="text-[11px] font-medium flex items-center gap-1 text-slate-400">
-                                      <Clock className="w-3 h-3" /> Đã qua giờ
-                                    </span>
-                                    <span className="text-[10px] text-slate-400">
-                                      Tiết {tiet} (Hết hạn)
-                                    </span>
-                                  </div>
-                                </td>
-                              );
-                            }
+                          // Even if area is in maintenance, still render historical/in-use booking cards instead of hiding them!
+                          if (slotBooking && slotBooking.trangThai !== 'quá hạn') {
+                            const isMyBooking = currentUser ? slotBooking.idNguoiDung === currentUser.id : false;
+                            const lopHoc = slotBooking.lop || (user?.lop ? user.lop : '');
 
                             return (
                               <td
                                 key={area.id}
-                                className="p-2 border-r border-slate-200 last:border-r-0 group"
+                                className="p-2 border-r border-slate-200 last:border-r-0 align-top"
                               >
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (isStudent) {
-                                      alert('Quy chế nhà trường: Học sinh không được đại diện đăng ký theo tiết trong tuần. Học sinh chỉ được đăng ký thuê sân vào Thứ 7 và Chủ nhật.');
-                                      return;
-                                    }
-                                    onOpenBooking({
-                                      idKhuVuc: area.id,
-                                      ngaySuDung: selectedDateVN,
-                                      thu: selectedThu,
-                                      buoi: 'chiều',
-                                      tiet: tiet,
-                                    });
-                                  }}
-                                  className="w-full h-full min-h-[64px] p-2 rounded-lg border border-dashed border-emerald-300 bg-emerald-50/20 hover:bg-emerald-50 hover:border-emerald-500 transition-colors flex flex-col items-center justify-center text-center text-emerald-700"
+                                <div
+                                  onClick={() => onViewBookingDetails(slotBooking)}
+                                  className={`p-2.5 rounded-lg border text-left cursor-pointer transition-all hover:shadow-xs ${
+                                    slotBooking.trangThai === 'đang sử dụng'
+                                      ? 'bg-blue-50/70 border-blue-200'
+                                      : slotBooking.trangThai === 'đã trả'
+                                      ? 'bg-slate-50 border-slate-200 opacity-85'
+                                      : 'bg-amber-50/70 border-amber-200'
+                                  }`}
                                 >
-                                  <span className="text-[11px] font-semibold flex items-center gap-1">
-                                    <Plus className="w-3 h-3" /> Còn trống
-                                  </span>
-                                  <span className="text-[10px] text-emerald-600/80">
-                                    {isStudent ? 'Chỉ dành cho GV' : `Bấm mượn tiết ${tiet}`}
-                                  </span>
-                                </button>
+                                  <div className="flex items-center justify-between gap-1 mb-1">
+                                    <div className="font-bold text-slate-900 truncate">
+                                      {user?.hoTen || 'Giáo viên'}
+                                    </div>
+                                    {renderStatusBadge(slotBooking)}
+                                  </div>
+
+                                  {lopHoc && (
+                                    <div className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-100/70 px-1.5 py-0.5 rounded my-0.5">
+                                      <GraduationCap className="w-3 h-3" />
+                                      Lớp {lopHoc}
+                                    </div>
+                                  )}
+
+                                  <div className="text-[11px] text-slate-600 line-clamp-1 mt-0.5">
+                                    {slotBooking.mucDichSuDung || 'Giảng dạy thể dục'}
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-1 mt-1">
+                                    {isMyBooking && (
+                                      <span className="text-[10px] font-semibold text-emerald-700 bg-white px-1.5 py-0.5 rounded border border-emerald-200">
+                                        Lịch của bạn
+                                      </span>
+                                    )}
+                                    {isMaintenance && (
+                                      <span className="text-[10px] font-semibold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                                        Khu vực: {area.trangThai}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
                               </td>
                             );
-                          })}
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                          }
+
+                          if (isMaintenance) {
+                            return (
+                              <td
+                                key={area.id}
+                                className="p-2 border-r border-slate-200 last:border-r-0 bg-slate-100/70 text-slate-400"
+                              >
+                                <div className="p-2.5 rounded-lg border border-dashed border-slate-300 text-center text-xs">
+                                  <AlertCircle className="w-3.5 h-3.5 mx-auto mb-1 text-slate-400" />
+                                  <span>Tạm ngưng ({area.trangThai})</span>
+                                </div>
+                              </td>
+                            );
+                          }
+
+                          const isPastSlot = isSlotInThePast(selectedDateVN, { buoi: 'chiều', tiet });
+                          const isStudent = currentUser?.idVaiTro === 'hoc_sinh';
+
+                          if (isPastSlot) {
+                            return (
+                              <td
+                                key={area.id}
+                                className="p-2 border-r border-slate-200 last:border-r-0 bg-slate-50/50"
+                              >
+                                <div className="w-full h-full min-h-[64px] p-2 rounded-lg border border-dashed border-slate-200 bg-slate-100/60 flex flex-col items-center justify-center text-center text-slate-400 select-none">
+                                  <span className="text-[11px] font-medium flex items-center gap-1 text-slate-400">
+                                    <Clock className="w-3 h-3" /> Đã qua giờ
+                                  </span>
+                                  <span className="text-[10px] text-slate-400">
+                                    Tiết {tiet} (Hết hạn)
+                                  </span>
+                                </div>
+                              </td>
+                            );
+                          }
+
+                          return (
+                            <td
+                              key={area.id}
+                              className="p-2 border-r border-slate-200 last:border-r-0 group"
+                            >
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (isStudent) {
+                                    onNotify(
+                                      'Quy chế nhà trường: Học sinh không được đại diện đăng ký theo tiết trong tuần. Chỉ được đăng ký thuê sân vào Thứ 7 và Chủ nhật.',
+                                      'error'
+                                    );
+                                    return;
+                                  }
+                                  onOpenBooking({
+                                    idKhuVuc: area.id,
+                                    ngaySuDung: selectedDateVN,
+                                    thu: selectedThu,
+                                    buoi: 'chiều',
+                                    tiet: tiet,
+                                  });
+                                }}
+                                className="w-full h-full min-h-[64px] p-2 rounded-lg border border-dashed border-emerald-300 bg-emerald-50/20 hover:bg-emerald-50 hover:border-emerald-500 transition-colors flex flex-col items-center justify-center text-center text-emerald-700"
+                              >
+                                <span className="text-[11px] font-semibold flex items-center gap-1">
+                                  <Plus className="w-3 h-3" /> Còn trống
+                                </span>
+                                <span className="text-[10px] text-emerald-600/80">
+                                  {isStudent ? 'Chỉ dành cho GV' : `Bấm mượn tiết ${tiet}`}
+                                </span>
+                              </button>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
+          </div>
         </div>
       ) : (
-        /* Weekend Hourly Booking View (Thứ 7 & Chủ Nhật) */
+        /* Weekend Hourly Booking View */
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {displayedAreas.map((area) => {
-            const areaBookings = bookingsOnDate.filter((b) => b.idKhuVuc === area.id);
+            const areaBookings = bookingsOnDate.filter((b) => {
+              if (b.idKhuVuc !== area.id) return false;
+              if (selectedSessionFilter === 'sáng' && b.gioBatDau) {
+                return b.gioBatDau < '12:00';
+              }
+              if (selectedSessionFilter === 'chiều' && b.gioBatDau) {
+                return b.gioBatDau >= '12:00';
+              }
+              return true;
+            });
             const isMaintenance = area.trangThai !== 'hoạt động';
 
             return (
@@ -470,7 +508,6 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                 key={area.id}
                 className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs flex flex-col"
               >
-                {/* Area Header & Image */}
                 <div className="relative h-44 bg-slate-900 overflow-hidden">
                   {area.hinhAnh ? (
                     <img
@@ -509,26 +546,31 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                   </div>
                 </div>
 
-                {/* Bookings / Hourly Timeline */}
                 <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                   <div>
                     <div className="flex items-center justify-between text-xs font-semibold text-slate-700 mb-2">
                       <span>Lịch thuê trong ngày ({selectedDateVN})</span>
                       <span className="text-slate-500 font-normal">
-                        {areaBookings.length} lượt thuê
+                        {areaBookings.length} lượt
                       </span>
                     </div>
 
                     {areaBookings.length === 0 ? (
                       <div className="p-4 rounded-lg bg-emerald-50/50 border border-emerald-100 text-center text-xs text-emerald-800">
                         <CheckCircle2 className="w-4 h-4 mx-auto mb-1 text-emerald-600" />
-                        Khu vực chưa có ai thuê hôm nay. Toàn bộ các khung giờ đều còn trống!
+                        Khu vực chưa có ai thuê trong khung lọc này!
                       </div>
                     ) : (
                       <div className="space-y-2">
                         {areaBookings.map((b) => {
                           const renter = userMap.get(b.idNguoiDung);
                           const lopDisplay = b.lop || renter?.lop;
+                          const effectiveInterval = getEffectiveWeekendInterval(b);
+                          const returnedEarly =
+                            b.trangThai === 'đã trả' &&
+                            effectiveInterval &&
+                            b.gioKetThuc &&
+                            effectiveInterval.end < b.gioKetThuc;
 
                           return (
                             <div
@@ -539,8 +581,13 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                               <div className="flex items-center justify-between gap-2 mb-1">
                                 <span className="font-mono font-bold text-xs text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200">
                                   {b.gioBatDau} - {b.gioKetThuc}
+                                  {returnedEarly && effectiveInterval && (
+                                    <span className="ml-1.5 text-[10px] text-emerald-700 font-sans">
+                                      (Trả sớm lúc {effectiveInterval.end})
+                                    </span>
+                                  )}
                                 </span>
-                                {renderStatusBadge(b.trangThai)}
+                                {renderStatusBadge(b)}
                               </div>
                               <div className="text-xs text-slate-800 font-bold flex items-center gap-1.5">
                                 <span>{renter?.hoTen}</span>
@@ -563,7 +610,6 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                     )}
                   </div>
 
-                  {/* Booking Action */}
                   <button
                     disabled={isMaintenance}
                     onClick={() =>
@@ -580,7 +626,7 @@ export const ScheduleMatrix: React.FC<ScheduleMatrixProps> = ({
                     }`}
                   >
                     <Plus className="w-4 h-4" />
-                    {isMaintenance ? 'Đang bảo trì - Không thể thuê' : 'Thuê sân khung giờ mới'}
+                    {isMaintenance ? `Đang ${area.trangThai} - Không thể thuê` : 'Thuê sân khung giờ mới'}
                   </button>
                 </div>
               </div>

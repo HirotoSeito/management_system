@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { DangKy, KhuVuc, NguoiDung } from '../types/index.ts';
+import type { DangKy, KhuVuc, NguoiDung } from '../types/index.ts';
 import {
   filterBookingsByTimeframe,
   aggregateStatistics,
+  getAcademicSemester,
   FilterTimeframe,
-  formatDateToVN,
-  isoDateToVN,
-  vnDateToIso,
 } from '../utils/bookingRules.ts';
 import { exportToExcelFile } from '../utils/exportExcel.ts';
 import {
@@ -15,10 +13,8 @@ import {
   Calendar,
   Clock,
   DollarSign,
-  CheckCircle2,
   Users,
   Building2,
-  Filter,
 } from 'lucide-react';
 
 interface StatisticsViewProps {
@@ -41,8 +37,10 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({
     return `${y}-${m}-${d}`;
   });
 
-  const refDate = new Date(targetDateIso);
+  const [y, m, d] = targetDateIso.split('-').map(Number);
+  const refDate = new Date(y, (m || 1) - 1, d || 1);
   const filteredBookings = filterBookingsByTimeframe(bookings, timeframe, refDate);
+  const academicInfo = getAcademicSemester(refDate);
 
   const { areaStats, userStats, totalBookings, totalHours, totalRevenue } =
     aggregateStatistics(filteredBookings, areas, users);
@@ -67,7 +65,7 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({
               Thống Kê Sử Dụng Khu Vực Thể Thao
             </h1>
             <p className="text-xs text-slate-500 mt-1">
-              Báo cáo chi tiết số lượt mượn/thuê theo từng khu vực, từng người dùng và xuất dữ liệu ra Excel
+              Số liệu giờ thực tế & doanh thu thực thu (tự động loại trừ lượt đã hủy, chưa nhận sân và quá hạn). Xuất Excel với định dạng số để cộng tổng trực tiếp.
             </p>
           </div>
 
@@ -82,7 +80,6 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({
 
         {/* Filter Bar */}
         <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3">
-          {/* Timeframe Tabs */}
           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
             <button
               onClick={() => setTimeframe('tat_ca')}
@@ -136,9 +133,13 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({
             </button>
           </div>
 
-          {/* Target Reference Date picker when specific timeframe selected */}
           {timeframe !== 'tat_ca' && (
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              {timeframe === 'hoc_ky' && (
+                <span className="text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg">
+                  {academicInfo.label}
+                </span>
+              )}
               <span className="text-xs text-slate-500 font-medium">Mốc thời gian:</span>
               <input
                 type="date"
@@ -153,11 +154,10 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({
 
       {/* KPI Overview Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1 */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Tổng lượt đăng ký
+              Tổng lượt hợp lệ
             </span>
             <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
               <Calendar className="w-4 h-4" />
@@ -167,15 +167,14 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({
             <span className="text-2xl font-bold font-mono tabular-nums text-slate-900">
               {totalBookings}
             </span>
-            <span className="text-xs text-slate-500">lượt mượn/thuê</span>
+            <span className="text-xs text-slate-500">lượt (trừ đã hủy)</span>
           </div>
         </div>
 
-        {/* Card 2 */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Tổng thời gian sử dụng
+              Giờ sử dụng thực tế
             </span>
             <div className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
               <Clock className="w-4 h-4" />
@@ -185,15 +184,14 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({
             <span className="text-2xl font-bold font-mono tabular-nums text-slate-900">
               {totalHours}
             </span>
-            <span className="text-xs text-slate-500">giờ hoạt động</span>
+            <span className="text-xs text-slate-500">giờ đã vận hành</span>
           </div>
         </div>
 
-        {/* Card 3 */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Doanh thu thuê cuối tuần
+              Doanh thu thực thu
             </span>
             <div className="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
               <DollarSign className="w-4 h-4" />
@@ -207,7 +205,6 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({
           </div>
         </div>
 
-        {/* Card 4 */}
         <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
@@ -235,7 +232,7 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({
               Thống Kê Chi Tiết Theo Khu Vực Thể Thao
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
-              Tần suất mượn, tổng số giờ vận hành và doanh thu phát sinh
+              Tần suất đăng ký, tổng giờ sử dụng thực tế và doanh thu phát sinh
             </p>
           </div>
           <span className="text-xs font-semibold text-slate-600">
@@ -251,9 +248,9 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({
                 <th className="py-3 px-4 text-center">Trạng thái</th>
                 <th className="py-3 px-4 text-right">Giá thuê/giờ</th>
                 <th className="py-3 px-4 text-right">Số lượt ĐK</th>
-                <th className="py-3 px-4 text-right">Tổng giờ (h)</th>
-                <th className="py-3 px-4 text-center">Đang dùng / Đã trả</th>
-                <th className="py-3 px-4 text-right">Doanh thu (VNĐ)</th>
+                <th className="py-3 px-4 text-right">Giờ thực tế (h)</th>
+                <th className="py-3 px-4 text-center">Chờ / Đang dùng / Đã trả / Quá hạn</th>
+                <th className="py-3 px-4 text-right">Thực thu (VNĐ)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -283,8 +280,10 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({
                       {item.tongThoiGianGio} h
                     </td>
                     <td className="py-3 px-4 text-center text-[11px] font-mono">
+                      <span className="text-amber-700 font-semibold">{item.soLuotChoSuDung}</span> /{' '}
                       <span className="text-blue-700 font-semibold">{item.soLuotDangSuDung}</span> /{' '}
-                      <span className="text-emerald-700 font-semibold">{item.soLuotDaTra}</span>
+                      <span className="text-emerald-700 font-semibold">{item.soLuotDaTra}</span> /{' '}
+                      <span className="text-rose-700 font-semibold">{item.soLuotQuaHan}</span>
                     </td>
                     <td className="py-3 px-4 text-right font-mono tabular-nums font-bold text-emerald-700">
                       {item.tongTienThu.toLocaleString('vi-VN')} đ
@@ -321,9 +320,9 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({
                 <th className="py-3 px-4">Họ và tên</th>
                 <th className="py-3 px-4">Vai trò</th>
                 <th className="py-3 px-4">Lớp</th>
-                <th className="py-3 px-4 text-right">Số lượt mượn/thuê</th>
-                <th className="py-3 px-4 text-right">Tổng thời gian (h)</th>
-                <th className="py-3 px-4 text-right">Chi phí thuê (VNĐ)</th>
+                <th className="py-3 px-4 text-right">Số lượt hợp lệ</th>
+                <th className="py-3 px-4 text-right">Giờ thực tế (h)</th>
+                <th className="py-3 px-4 text-right">Chi phí thực thu (VNĐ)</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -347,7 +346,7 @@ export const StatisticsView: React.FC<StatisticsViewProps> = ({
                     {item.tongThoiGianGio} h
                   </td>
                   <td className="py-3 px-4 text-right font-mono tabular-nums font-semibold text-emerald-700">
-                    {item.tongChiPhi ? `${item.tongChiPhi.toLocaleString('vi-VN')} đ` : '0 đ (Giảng dạy)'}
+                    {item.tongChiPhi ? `${item.tongChiPhi.toLocaleString('vi-VN')} đ` : '0 đ (Miễn phí)'}
                   </td>
                 </tr>
               ))}

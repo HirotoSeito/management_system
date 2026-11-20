@@ -1,17 +1,14 @@
 import React from 'react';
-import { DangKy, KhuVuc, NguoiDung } from '../types/index.ts';
-import { TIET_HOC_INFO } from '../utils/bookingRules.ts';
+import type { DangKy, KhuVuc, NguoiDung } from '../types/index.ts';
+import { TIET_HOC_INFO, isBookingOverdueReturn } from '../utils/bookingRules.ts';
 import {
   X,
   Calendar,
   Clock,
   User,
-  MapPin,
-  CheckCircle2,
-  DollarSign,
   Building2,
   GraduationCap,
-  Award,
+  AlertTriangle,
 } from 'lucide-react';
 
 interface BookingDetailsModalProps {
@@ -20,7 +17,7 @@ interface BookingDetailsModalProps {
   areas: KhuVuc[];
   users: NguoiDung[];
   currentUser: NguoiDung | null;
-  onReturnArea?: (bookingId: string) => void;
+  onReturnArea?: (bookingId: string) => Promise<void>;
 }
 
 export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
@@ -38,6 +35,7 @@ export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
   const isOwner = currentUser ? borrower?.id === currentUser.id : false;
   const isAdminOrBgh = currentUser ? (currentUser.idVaiTro === 'admin' || currentUser.idVaiTro === 'bgh') : false;
   const canReturn = (isOwner || isAdminOrBgh) && booking.trangThai === 'đang sử dụng';
+  const overdue = isBookingOverdueReturn(booking);
 
   let timeDetails = '';
   if (booking.gioBatDau && booking.gioKetThuc) {
@@ -68,6 +66,13 @@ export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
         </div>
 
         <div className="mt-4 space-y-3.5 text-xs">
+          {overdue && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 flex items-center gap-2 font-semibold">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>Cảnh báo: Lượt sử dụng này đã quá giờ trả sân nhưng chưa xác nhận hoàn trả!</span>
+            </div>
+          )}
+
           {/* Facility */}
           <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -98,8 +103,8 @@ export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
               <span className="text-[11px] text-slate-400 block font-semibold mb-0.5">
                 TRẠNG THÁI
               </span>
-              <span className="font-bold text-slate-900 capitalize">
-                {booking.trangThai}
+              <span className={`font-bold capitalize ${overdue ? 'text-rose-700' : 'text-slate-900'}`}>
+                {overdue ? 'Đang sử dụng (Quá giờ trả)' : booking.trangThai}
               </span>
             </div>
           </div>
@@ -143,7 +148,9 @@ export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
                   ? 'Giáo viên bộ môn'
                   : borrower?.idVaiTro === 'hoc_sinh'
                   ? `Học sinh lớp ${borrower.lop || ''}`
-                  : borrower?.idVaiTro}
+                  : borrower?.idVaiTro === 'bgh'
+                  ? 'Ban giám hiệu'
+                  : 'Quản trị viên'}
               </span>
             </div>
             {borrower?.soDienThoai && (
@@ -163,11 +170,24 @@ export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
             </span>
           </div>
 
-          {/* Return Info */}
+          {booking.thoiGianBatDauThucTe && (
+            <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-800">
+              <span className="font-bold block">Thời điểm nhận sân thực tế:</span>
+              <span className="font-mono text-xs font-semibold">{booking.thoiGianBatDauThucTe}</span>
+            </div>
+          )}
+
           {booking.thoiGianTra && (
             <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800">
               <span className="font-bold block">Thời điểm thực tế đã trả khu vực:</span>
               <span className="font-mono text-xs font-semibold">{booking.thoiGianTra}</span>
+            </div>
+          )}
+
+          {booking.ghiChuHeThong && (
+            <div className="p-3 rounded-xl bg-slate-100 border border-slate-200 text-slate-700">
+              <span className="font-bold block">Ghi chú hệ thống:</span>
+              <span>{booking.ghiChuHeThong}</span>
             </div>
           )}
 
@@ -181,7 +201,7 @@ export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
             </div>
           ) : (
             <div className="p-2 text-center text-slate-500 text-[11px]">
-              Khu vực sử dụng cho mục đích giảng dạy bộ môn chính khóa (Miễn phí)
+              Miễn phí theo quy chế (Giảng dạy chính khóa / Cán bộ nhà trường)
             </div>
           )}
         </div>
@@ -190,8 +210,8 @@ export const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({
           {canReturn && onReturnArea && (
             <button
               type="button"
-              onClick={() => {
-                onReturnArea(booking.id);
+              onClick={async () => {
+                await onReturnArea(booking.id);
                 onClose();
               }}
               className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs"

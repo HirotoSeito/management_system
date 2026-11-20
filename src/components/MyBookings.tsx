@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
-import { DangKy, KhuVuc, NguoiDung, TrangThaiDangKy } from '../types/index.ts';
-import { TIET_HOC_INFO, formatDateToVN } from '../utils/bookingRules.ts';
+import type { DangKy, KhuVuc, NguoiDung, TrangThaiDangKy } from '../types/index.ts';
+import {
+  TIET_HOC_INFO,
+  canEditOrCancelBooking,
+  isBookingOverdueReturn,
+  isSlotEnded,
+} from '../utils/bookingRules.ts';
 import {
   Calendar,
   Clock,
@@ -9,11 +14,10 @@ import {
   PlayCircle,
   Edit3,
   Trash2,
-  RotateCcw,
   AlertTriangle,
   UserCheck,
   Search,
-  Filter,
+  AlertCircle,
 } from 'lucide-react';
 
 interface MyBookingsProps {
@@ -22,9 +26,9 @@ interface MyBookingsProps {
   users: NguoiDung[];
   currentUser: NguoiDung;
   onEditBooking: (booking: DangKy) => void;
-  onCancelBooking: (bookingId: string) => void;
-  onReturnArea: (bookingId: string) => void;
-  onStartUsingArea: (bookingId: string) => void;
+  onCancelBooking: (bookingId: string) => Promise<void>;
+  onReturnArea: (bookingId: string) => Promise<void>;
+  onStartUsingArea: (bookingId: string) => Promise<void>;
 }
 
 export const MyBookings: React.FC<MyBookingsProps> = ({
@@ -46,10 +50,9 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
   const isAdminOrBgh = currentUser.idVaiTro === 'admin' || currentUser.idVaiTro === 'bgh';
   const areaMap = new Map(areas.map((a) => [a.id, a]));
   const userMap = new Map(users.map((u) => [u.id, u]));
+  const now = new Date();
 
-  // Filter list
   const userBookings = bookings.filter((b) => {
-    // If not admin or if user wants to see their own
     if (!isAdminOrBgh || !viewAllBookings) {
       if (b.idNguoiDung !== currentUser.id) return false;
     }
@@ -66,15 +69,17 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
       const matchDate = b.ngaySuDung.includes(term);
       const matchPurpose = b.mucDichSuDung?.toLowerCase().includes(term);
       const matchUser = user?.hoTen.toLowerCase().includes(term);
-      if (!matchArea && !matchDate && !matchPurpose && !matchUser) return false;
+      const matchLop = b.lop?.toLowerCase().includes(term);
+      if (!matchArea && !matchDate && !matchPurpose && !matchUser && !matchLop) return false;
     }
 
     return true;
   });
 
-  // Render Status Badge
-  const renderStatus = (status: TrangThaiDangKy) => {
-    switch (status) {
+  const renderStatus = (booking: DangKy) => {
+    const overdueReturn = isBookingOverdueReturn(booking, now);
+
+    switch (booking.trangThai) {
       case 'đã đăng ký':
         return (
           <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
@@ -82,7 +87,11 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
           </span>
         );
       case 'đang sử dụng':
-        return (
+        return overdueReturn ? (
+          <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-300">
+            <AlertCircle className="w-3.5 h-3.5 animate-pulse" /> Đang sử dụng (Quá giờ trả!)
+          </span>
+        ) : (
           <span className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-md border border-blue-200">
             <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span> Đang sử dụng
           </span>
@@ -91,6 +100,12 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
         return (
           <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
             <CheckCircle2 className="w-3.5 h-3.5" /> Đã trả khu vực
+          </span>
+        );
+      case 'quá hạn':
+        return (
+          <span className="inline-flex items-center gap-1 text-xs font-semibold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200">
+            <AlertTriangle className="w-3.5 h-3.5" /> Quá hạn (Không nhận sân)
           </span>
         );
       case 'đã hủy':
@@ -113,7 +128,7 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
               Quản Lý Lượt Đăng Ký Mượn / Thuê
             </h1>
             <p className="text-xs text-slate-500 mt-1">
-              Chỉnh sửa, hủy lịch mượn chưa dùng hoặc xác nhận trả khu vực sau khi sử dụng xong
+              Chỉnh sửa, hủy lịch trước giờ bắt đầu hoặc xác nhận trả sân để giải phóng khung giờ còn trống
             </p>
           </div>
 
@@ -153,7 +168,7 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Tìm theo khu vực, người đăng ký, mục đích..."
+              placeholder="Tìm theo khu vực, người đăng ký, lớp, mục đích..."
               className="w-full text-xs pl-9 pr-3 py-2 border border-slate-300 rounded-lg bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
             />
           </div>
@@ -168,6 +183,7 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
               <option value="đang sử dụng">Đang sử dụng</option>
               <option value="đã đăng ký">Đã đăng ký (Chờ sử dụng)</option>
               <option value="đã trả">Đã hoàn trả</option>
+              <option value="quá hạn">Quá hạn (Không nhận sân)</option>
               <option value="đã hủy">Đã hủy</option>
             </select>
           </div>
@@ -194,6 +210,8 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
             const borrower = userMap.get(b.idNguoiDung);
             const isOwner = b.idNguoiDung === currentUser.id;
             const canManage = isOwner || isAdminOrBgh;
+            const editCancelGuard = canEditOrCancelBooking(b, now);
+            const ended = isSlotEnded(b, now);
 
             let timeDetails = '';
             if (b.gioBatDau && b.gioKetThuc) {
@@ -208,13 +226,12 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
                 key={b.id}
                 className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs hover:border-slate-300 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
               >
-                {/* Left Info */}
                 <div className="space-y-1.5 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-bold text-base text-slate-900">
                       {area?.tenKhuVuc || 'Khu vực thể thao'}
                     </span>
-                    {renderStatus(b.trangThai)}
+                    {renderStatus(b)}
                     {viewAllBookings && borrower && (
                       <span className="text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded font-medium">
                         {borrower.hoTen} {borrower.lop ? `(${borrower.lop})` : `(${borrower.idVaiTro})`}
@@ -242,7 +259,7 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
                       </span>
                     ) : (
                       <span className="text-slate-400 font-medium">
-                        Miễn phí (Tiết học chính khóa)
+                        Miễn phí
                       </span>
                     )}
                   </div>
@@ -252,18 +269,28 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
                     {b.mucDichSuDung || 'Học tập / Giải trí'}
                   </div>
 
+                  {b.thoiGianBatDauThucTe && (
+                    <div className="text-[11px] text-blue-700 font-mono">
+                      • Nhận sân lúc: <strong>{b.thoiGianBatDauThucTe}</strong>
+                    </div>
+                  )}
+
                   {b.thoiGianTra && (
                     <div className="text-xs text-emerald-700 bg-emerald-50 px-2 py-1 rounded inline-block font-mono">
                       ✓ Đã ghi nhận trả khu vực vào lúc: <strong>{b.thoiGianTra}</strong>
                     </div>
                   )}
+
+                  {b.ghiChuHeThong && (
+                    <div className="text-[11px] text-slate-600 bg-slate-100 px-2.5 py-1 rounded border border-slate-200">
+                      Ghi chú hệ thống: {b.ghiChuHeThong}
+                    </div>
+                  )}
                 </div>
 
-                {/* Right Action Buttons */}
                 {canManage && (
                   <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100">
-                    {/* If registered -> start using */}
-                    {b.trangThai === 'đã đăng ký' && (
+                    {b.trangThai === 'đã đăng ký' && !ended && (
                       <button
                         type="button"
                         onClick={() => onStartUsingArea(b.id)}
@@ -274,7 +301,6 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
                       </button>
                     )}
 
-                    {/* If in use -> Confirm Return */}
                     {b.trangThai === 'đang sử dụng' && (
                       <button
                         type="button"
@@ -286,28 +312,32 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
                       </button>
                     )}
 
-                    {/* If registered -> can Edit */}
-                    {b.trangThai === 'đã đăng ký' && (
-                      <button
-                        type="button"
-                        onClick={() => onEditBooking(b)}
-                        className="px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        Chỉnh Sửa
-                      </button>
+                    {b.trangThai === 'đã đăng ký' && editCancelGuard.allowed && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => onEditBooking(b)}
+                          className="px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          Chỉnh Sửa
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setCancelingBookingId(b.id)}
+                          className="px-3 py-1.5 text-xs font-medium text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-colors flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          Hủy Đăng Ký
+                        </button>
+                      </>
                     )}
 
-                    {/* If registered -> can Cancel */}
-                    {b.trangThai === 'đã đăng ký' && (
-                      <button
-                        type="button"
-                        onClick={() => setCancelingBookingId(b.id)}
-                        className="px-3 py-1.5 text-xs font-medium text-rose-700 hover:text-rose-900 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-colors flex items-center gap-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        Hủy Đăng Ký
-                      </button>
+                    {b.trangThai === 'đã đăng ký' && !editCancelGuard.allowed && (
+                      <span className="text-[11px] text-slate-400 italic px-2">
+                        Đã đến giờ — không thể sửa/hủy
+                      </span>
                     )}
                   </div>
                 )}
@@ -328,7 +358,7 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
               Xác Nhận Trả Khu Vực Thể Thao
             </h3>
             <p className="text-xs text-slate-600 mt-2">
-              Bạn có chắc chắn muốn kết thúc sử dụng và bàn giao lại khu vực thể thao? Hệ thống sẽ tự động lưu lại thời điểm trả thực tế để Ban giám hiệu theo dõi.
+              Hệ thống sẽ lưu lại thời điểm trả thực tế. Nếu trả sân sớm hơn giờ kết thúc cuối tuần, phần giờ chưa sử dụng sẽ tự động được giải phóng cho người khác và tiền thuê sẽ được tính lại theo thời gian sử dụng thực tế.
             </p>
             <div className="mt-5 flex items-center justify-end gap-3">
               <button
@@ -340,9 +370,10 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  onReturnArea(returningBookingId);
+                onClick={async () => {
+                  const id = returningBookingId;
                   setReturningBookingId(null);
+                  await onReturnArea(id);
                 }}
                 className="px-4 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-xs"
               >
@@ -376,9 +407,10 @@ export const MyBookings: React.FC<MyBookingsProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  onCancelBooking(cancelingBookingId);
+                onClick={async () => {
+                  const id = cancelingBookingId;
                   setCancelingBookingId(null);
+                  await onCancelBooking(id);
                 }}
                 className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-xs"
               >

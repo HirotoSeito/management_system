@@ -1,10 +1,18 @@
 /**
  * Pure functions for school sports area booking rules, time conversions,
- * conflict resolution, and statistical calculations.
+ * conflict resolution, early return calculations, and statistical aggregations.
  * Tailored for Trường THPT chuyên Lê Quý Đôn – Nam Nha Trang.
  */
 
-import type { DangKy, KhuVuc, NguoiDung, ThuTrongTuan, BuoiTrongNgay, TietHoc } from '../types/index.ts';
+import type {
+  DangKy,
+  KhuVuc,
+  NguoiDung,
+  ThuTrongTuan,
+  BuoiTrongNgay,
+  TietHoc,
+  VaiTroId,
+} from '../types/index.ts';
 
 // Danh sách các khối và lớp chuyên của Trường THPT chuyên Lê Quý Đôn – Nam Nha Trang
 export const KHOI_HOC = ['10', '11', '12'] as const;
@@ -16,6 +24,16 @@ KHOI_HOC.forEach((khoi) => {
     DANH_SACH_LOP_CHUYEN.push(`${khoi} ${mon}`);
   });
 });
+
+export function isValidLopChuyen(lop?: string): boolean {
+  if (!lop) return false;
+  return DANH_SACH_LOP_CHUYEN.includes(lop.trim());
+}
+
+// Weekend booking safeguards
+export const MIN_WEEKEND_DURATION_MINUTES = 30;
+export const MAX_STUDENT_WEEKEND_BOOKINGS_PER_DAY = 2;
+export const MAX_STUDENT_WEEKEND_HOURS_PER_DAY = 4;
 
 // Standard mapping for periods (tiết học)
 export const TIET_HOC_INFO: Record<BuoiTrongNgay, Record<TietHoc, { label: string; thoiGian: string }>> = {
@@ -46,6 +64,41 @@ export function formatDateToVN(date: Date): string {
 }
 
 /**
+ * Format Date object to 'HH:mm dd/mm/yyyy'
+ */
+export function formatDateTimeToVN(date: Date): string {
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes} ${formatDateToVN(date)}`;
+}
+
+/**
+ * Parse 'HH:mm dd/mm/yyyy' into { timeStr, dateStr, minutes, date }
+ */
+export function parseVNDateTime(dateTimeVN?: string | null): {
+  timeStr: string;
+  dateStr: string;
+  minutes: number;
+  date: Date;
+} | null {
+  if (!dateTimeVN) return null;
+  const trimmed = dateTimeVN.trim();
+  const match = /^(\d{1,2}:\d{2})\s+(\d{1,2}\/\d{1,2}\/\d{4})$/.exec(trimmed);
+  if (!match) return null;
+  const [, timeStr, dateStr] = match;
+  const [hh, mm] = timeStr.split(':').map(Number);
+  const d = parseVNDate(dateStr);
+  if (Number.isNaN(d.getTime())) return null;
+  const fullDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hh || 0, mm || 0, 0, 0);
+  return {
+    timeStr: `${String(hh || 0).padStart(2, '0')}:${String(mm || 0).padStart(2, '0')}`,
+    dateStr: formatDateToVN(d),
+    minutes: (hh || 0) * 60 + (mm || 0),
+    date: fullDate,
+  };
+}
+
+/**
  * Convert 'dd/mm/yyyy' string to ISO 'YYYY-MM-DD' for HTML date inputs
  */
 export function vnDateToIso(vnDate: string): string {
@@ -72,7 +125,7 @@ export function isoDateToVN(isoDate: string): string {
 }
 
 /**
- * Parse 'dd/mm/yyyy' to Date object
+ * Parse 'dd/mm/yyyy' to Date object (local midnight)
  */
 export function parseVNDate(vnDate: string): Date {
   const parts = vnDate.split('/');
@@ -150,7 +203,51 @@ export function calculateRentalCost(pricePerHour: number, startTime?: string, en
 }
 
 /**
- * Check if a date string (dd/mm/yyyy) and slot (period or hours) is in the past compared to current time
+ * Calculate booking cost according to school policy:
+ * Only students ('hoc_sinh') pay weekend hourly fees. Teachers, BGH, and Admin are free.
+ */
+export function calculateBookingCost(
+  pricePerHour: number,
+  isWeekend: boolean,
+  renterRole?: VaiTroId | string,
+  startTime?: string,
+  endTime?: string
+): number {
+  if (!isWeekend) return 0;
+  if (renterRole !== 'hoc_sinh') return 0;
+  return calculateRentalCost(pricePerHour, startTime, endTime);
+}
+
+/**
+ * Get scheduled start & end HH:mm for a booking (period or hourly)
+ */
+export function getBookingScheduledRange(
+  booking: Pick<DangKy, 'buoi' | 'tiet' | 'gioBatDau' | 'gioKetThuc'>
+): { startStr: string; endStr: string; startMin: number; endMin: number } | null {
+  if (booking.gioBatDau && booking.gioKetThuc) {
+    return {
+      startStr: booking.gioBatDau,
+      endStr: booking.gioKetThuc,
+      startMin: timeStringToMinutes(booking.gioBatDau),
+      endMin: timeStringToMinutes(booking.gioKetThuc),
+    };
+  }
+  if (booking.buoi && booking.tiet) {
+    const info = TIET_HOC_INFO[booking.buoi]?.[booking.tiet];
+    if (!info) return null;
+    const [startStr, endStr] = info.thoiGian.split(' - ');
+    return {
+      startStr,
+      endStr,
+      startMin: timeStringToMinutes(startStr),
+      endMin: timeStringToMinutes(endStr),
+    };
+  }
+  return null;
+}
+
+/**
+ * Check if a date string (dd/mm/yyyy) and slot start time is in the past (>= start time)
  */
 export function isSlotInThePast(
   ngaySuDungVN: string,
@@ -162,17 +259,14 @@ export function isSlotInThePast(
   const slotDate = parseVNDate(ngaySuDungVN);
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-  // Past date
   if (slotDate < today) {
     return true;
   }
 
-  // Future date
   if (slotDate > today) {
     return false;
   }
 
-  // Date is TODAY: check time
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
   if (tiet) {
@@ -191,9 +285,152 @@ export function isSlotInThePast(
 }
 
 /**
+ * Check if a booking's scheduled end time has already passed
+ */
+export function isSlotEnded(
+  booking: Pick<DangKy, 'ngaySuDung' | 'buoi' | 'tiet' | 'gioBatDau' | 'gioKetThuc'>,
+  now: Date = new Date()
+): boolean {
+  if (!booking.ngaySuDung) return false;
+  const slotDate = parseVNDate(booking.ngaySuDung);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  if (slotDate < today) return true;
+  if (slotDate > today) return false;
+
+  const range = getBookingScheduledRange(booking);
+  if (!range) return false;
+
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  return currentMinutes >= range.endMin;
+}
+
+/**
+ * Detect if an in-use booking has exceeded its scheduled end time without being returned
+ */
+export function isBookingOverdueReturn(booking: DangKy, now: Date = new Date()): boolean {
+  if (booking.trangThai !== 'đang sử dụng') return false;
+  return isSlotEnded(booking, now);
+}
+
+/**
+ * Detect if a registered (unstarted) booking has passed its scheduled end time without check-in
+ */
+export function isBookingNoShow(booking: DangKy, now: Date = new Date()): boolean {
+  if (booking.trangThai !== 'đã đăng ký') return false;
+  return isSlotEnded(booking, now);
+}
+
+/**
+ * Check whether a booking can be edited or cancelled according to school policy:
+ * Must be in 'đã đăng ký' status AND strictly before its scheduled start time.
+ */
+export function canEditOrCancelBooking(
+  booking: DangKy,
+  now: Date = new Date()
+): { allowed: boolean; reason?: string } {
+  if (booking.trangThai !== 'đã đăng ký') {
+    return {
+      allowed: false,
+      reason: `Chỉ có thể chỉnh sửa hoặc hủy lượt ở trạng thái "đã đăng ký" (hiện tại: ${booking.trangThai}).`,
+    };
+  }
+
+  const isStartedOrPast = isSlotInThePast(
+    booking.ngaySuDung,
+    booking.buoi && booking.tiet ? { buoi: booking.buoi, tiet: booking.tiet } : undefined,
+    booking.gioBatDau,
+    now
+  );
+
+  if (isStartedOrPast) {
+    return {
+      allowed: false,
+      reason: 'Đã đến hoặc qua giờ bắt đầu sử dụng. Không thể chỉnh sửa hoặc hủy lịch.',
+    };
+  }
+
+  return { allowed: true };
+}
+
+/**
+ * Get effective occupied weekend interval [start, end] for conflict detection.
+ * When a weekend booking is returned early ('đã trả' with thoiGianTra < gioKetThuc),
+ * the unused remainder [returnTime, gioKetThuc] is released immediately!
+ */
+export function getEffectiveWeekendInterval(
+  booking: DangKy
+): { start: string; end: string } | null {
+  if (booking.trangThai === 'đã hủy' || booking.trangThai === 'quá hạn') return null;
+  if (!booking.gioBatDau || !booking.gioKetThuc) return null;
+
+  if (booking.trangThai === 'đã trả' && booking.thoiGianTra) {
+    const ret = parseVNDateTime(booking.thoiGianTra);
+    if (ret) {
+      const bookingDate = parseVNDate(booking.ngaySuDung);
+      const retDateOnly = new Date(ret.date.getFullYear(), ret.date.getMonth(), ret.date.getDate());
+      if (retDateOnly < bookingDate) {
+        return null; // Returned before the booked date -> completely free
+      }
+      if (retDateOnly.getTime() === bookingDate.getTime()) {
+        const startMin = timeStringToMinutes(booking.gioBatDau);
+        const endMin = timeStringToMinutes(booking.gioKetThuc);
+        if (ret.minutes <= startMin) {
+          return null; // Returned before start -> completely free
+        }
+        if (ret.minutes < endMin) {
+          return { start: booking.gioBatDau, end: ret.timeStr };
+        }
+      }
+    }
+  }
+
+  return { start: booking.gioBatDau, end: booking.gioKetThuc };
+}
+
+/**
+ * Recalculate rental fee when returning a booking (especially early return).
+ * Teachers/BGH/Admin always pay 0.
+ */
+export function calculateActualReturnCost(
+  pricePerHour: number,
+  booking: DangKy,
+  returnDateTimeVN: string,
+  renterRole?: VaiTroId | string
+): number {
+  if (renterRole && renterRole !== 'hoc_sinh') return 0;
+  if (!booking.tongTien || booking.tongTien === 0) return 0;
+  if (!booking.gioBatDau || !booking.gioKetThuc) return booking.tongTien || 0;
+
+  const ret = parseVNDateTime(returnDateTimeVN);
+  if (!ret) return booking.tongTien || 0;
+
+  const bookingDate = parseVNDate(booking.ngaySuDung);
+  const retDateOnly = new Date(ret.date.getFullYear(), ret.date.getMonth(), ret.date.getDate());
+
+  if (retDateOnly < bookingDate) {
+    return 0;
+  }
+
+  if (retDateOnly.getTime() === bookingDate.getTime()) {
+    const startMin = timeStringToMinutes(booking.gioBatDau);
+    const endMin = timeStringToMinutes(booking.gioKetThuc);
+    if (ret.minutes <= startMin) {
+      return 0;
+    }
+    if (ret.minutes < endMin) {
+      return calculateRentalCost(pricePerHour, booking.gioBatDau, ret.timeStr);
+    }
+  }
+
+  return calculateRentalCost(pricePerHour, booking.gioBatDau, booking.gioKetThuc);
+}
+
+/**
  * Validate weekend hours according to school regulations:
  * Sáng: 07:00 – 10:00
  * Chiều: 13:00 – 16:30
+ * Minimum duration: 30 minutes
  */
 export function isValidWeekendHours(gioBatDau: string, gioKetThuc: string): { isValid: boolean; reason?: string } {
   if (!gioBatDau || !gioKetThuc) {
@@ -205,6 +442,13 @@ export function isValidWeekendHours(gioBatDau: string, gioKetThuc: string): { is
 
   if (endMin <= startMin) {
     return { isValid: false, reason: 'Giờ kết thúc phải lớn hơn giờ bắt đầu.' };
+  }
+
+  if (endMin - startMin < MIN_WEEKEND_DURATION_MINUTES) {
+    return {
+      isValid: false,
+      reason: `Thời lượng thuê tối thiểu mỗi lượt là ${MIN_WEEKEND_DURATION_MINUTES} phút.`,
+    };
   }
 
   const morningStart = timeStringToMinutes('07:00');
@@ -230,8 +474,9 @@ export function isValidWeekendHours(gioBatDau: string, gioKetThuc: string): { is
  * - Reject if area is not active ('hoạt động')
  * - Reject if time is in the past
  * - Reject if student tries to book weekday
+ * - Reject if student exceeds daily weekend quota (max 2 bookings or 4 hours/day)
  * - Reject if duplicate slot on Monday - Friday (same date, area, buoi, tiet)
- * - Reject if overlapping time on Saturday - Sunday (same date, area, overlapping time range)
+ * - Reject if overlapping effective time on Saturday - Sunday (early returns release remainder)
  */
 export interface ConflictCheckResult {
   hasConflict: boolean;
@@ -244,7 +489,8 @@ export function checkBookingConflict(
   khuVuc: KhuVuc | undefined,
   newBooking: Partial<DangKy>,
   excludeBookingId?: string,
-  userRole?: string
+  userRole?: string,
+  now: Date = new Date()
 ): ConflictCheckResult {
   if (!khuVuc) {
     return { hasConflict: true, reason: 'Khu vực không tồn tại trong hệ thống.' };
@@ -257,7 +503,7 @@ export function checkBookingConflict(
     };
   }
 
-  const { ngaySuDung, thu, buoi, tiet, gioBatDau, gioKetThuc } = newBooking;
+  const { ngaySuDung, thu, buoi, tiet, gioBatDau, gioKetThuc, idNguoiDung } = newBooking;
 
   if (!ngaySuDung || !thu) {
     return { hasConflict: true, reason: 'Vui lòng cung cấp ngày sử dụng.' };
@@ -277,7 +523,8 @@ export function checkBookingConflict(
   const isPast = isSlotInThePast(
     ngaySuDung,
     !isWeekend && buoi && tiet ? { buoi, tiet: tiet as TietHoc } : undefined,
-    isWeekend && gioBatDau ? gioBatDau : undefined
+    isWeekend && gioBatDau ? gioBatDau : undefined,
+    now
   );
   if (isPast) {
     return {
@@ -291,8 +538,7 @@ export function checkBookingConflict(
     if (excludeBookingId && b.id === excludeBookingId) return false;
     if (b.idKhuVuc !== khuVuc.id) return false;
     if (b.ngaySuDung !== ngaySuDung) return false;
-    // Cancelled bookings do not cause conflicts
-    return b.trangThai !== 'đã hủy';
+    return b.trangThai !== 'đã hủy' && b.trangThai !== 'quá hạn';
   });
 
   if (!isWeekend) {
@@ -304,14 +550,26 @@ export function checkBookingConflict(
       };
     }
 
-    // Weekday: must have buoi and tiet
     if (!buoi || !tiet) {
       return { hasConflict: true, reason: 'Vui lòng chọn buổi và tiết học (1-5).' };
     }
 
-    const conflict = activeBookingsOnSameDate.find(
-      (b) => b.buoi === buoi && Number(b.tiet) === Number(tiet)
-    );
+    const conflict = activeBookingsOnSameDate.find((b) => {
+      if (b.buoi !== buoi || Number(b.tiet) !== Number(tiet)) return false;
+      // If returned before the period even started, it was freed
+      if (b.trangThai === 'đã trả' && b.thoiGianTra) {
+        const ret = parseVNDateTime(b.thoiGianTra);
+        const range = getBookingScheduledRange(b);
+        if (ret && range) {
+          const bDate = parseVNDate(b.ngaySuDung);
+          const retDateOnly = new Date(ret.date.getFullYear(), ret.date.getMonth(), ret.date.getDate());
+          if (retDateOnly < bDate || (retDateOnly.getTime() === bDate.getTime() && ret.minutes <= range.startMin)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
 
     if (conflict) {
       return {
@@ -321,7 +579,6 @@ export function checkBookingConflict(
       };
     }
   } else {
-    // Weekend: must have gioBatDau and gioKetThuc
     if (!gioBatDau || !gioKetThuc) {
       return { hasConflict: true, reason: 'Vui lòng chọn giờ bắt đầu và giờ kết thúc.' };
     }
@@ -331,25 +588,53 @@ export function checkBookingConflict(
       return { hasConflict: true, reason: validTime.reason };
     }
 
-    const startMin = timeStringToMinutes(gioBatDau);
-    const endMin = timeStringToMinutes(gioKetThuc);
+    // Rule: Limit student weekend bookings per day to prevent slot hoarding
+    if (userRole === 'hoc_sinh' && idNguoiDung) {
+      const studentDayBookings = existingBookings.filter((b) => {
+        if (excludeBookingId && b.id === excludeBookingId) return false;
+        if (b.idNguoiDung !== idNguoiDung) return false;
+        if (b.ngaySuDung !== ngaySuDung) return false;
+        return b.trangThai !== 'đã hủy' && b.trangThai !== 'quá hạn';
+      });
 
-    if (endMin <= startMin) {
-      return { hasConflict: true, reason: 'Giờ kết thúc phải sau giờ bắt đầu.' };
+      if (studentDayBookings.length >= MAX_STUDENT_WEEKEND_BOOKINGS_PER_DAY) {
+        return {
+          hasConflict: true,
+          reason: `Giới hạn quy chế: Mỗi học sinh chỉ được đăng ký tối đa ${MAX_STUDENT_WEEKEND_BOOKINGS_PER_DAY} lượt thuê trong ngày ${ngaySuDung} để đảm bảo công bằng cho các lớp khác.`,
+        };
+      }
+
+      const newDurationHours = (timeStringToMinutes(gioKetThuc) - timeStringToMinutes(gioBatDau)) / 60;
+      const existingHours = studentDayBookings.reduce((sum, b) => {
+        const effective = getEffectiveWeekendInterval(b);
+        if (!effective) return sum;
+        return sum + Math.max(0, (timeStringToMinutes(effective.end) - timeStringToMinutes(effective.start)) / 60);
+      }, 0);
+
+      if (existingHours + newDurationHours > MAX_STUDENT_WEEKEND_HOURS_PER_DAY + 0.001) {
+        return {
+          hasConflict: true,
+          reason: `Giới hạn quy chế: Tổng thời lượng thuê tối đa mỗi ngày của 1 học sinh là ${MAX_STUDENT_WEEKEND_HOURS_PER_DAY} giờ (bạn đã có ${Math.round(existingHours * 10) / 10} giờ trong ngày ${ngaySuDung}).`,
+        };
+      }
     }
 
-    // Check overlap with existing weekend hourly bookings
+    // Check overlap with effective intervals of existing weekend hourly bookings
+    let conflictingInterval: { start: string; end: string } | null = null;
     const conflict = activeBookingsOnSameDate.find((b) => {
-      if (b.gioBatDau && b.gioKetThuc) {
-        return doTimesOverlap(gioBatDau, gioKetThuc, b.gioBatDau, b.gioKetThuc);
+      const interval = getEffectiveWeekendInterval(b);
+      if (interval && doTimesOverlap(gioBatDau, gioKetThuc, interval.start, interval.end)) {
+        conflictingInterval = interval;
+        return true;
       }
       return false;
     });
 
-    if (conflict) {
+    if (conflict && conflictingInterval) {
+      const cInterval = conflictingInterval as { start: string; end: string };
       return {
         hasConflict: true,
-        reason: `Trùng lịch: Khu vực đã có người thuê từ ${conflict.gioBatDau} đến ${conflict.gioKetThuc} vào ${ngaySuDung}.`,
+        reason: `Trùng lịch: Khu vực đã có người thuê từ ${cInterval.start} đến ${cInterval.end} vào ${ngaySuDung}.`,
         conflictingBooking: conflict,
       };
     }
@@ -359,11 +644,46 @@ export function checkBookingConflict(
 }
 
 /**
- * Filter bookings by statistical timeframe:
- * - 'day': specific date (dd/mm/yyyy)
- * - 'week': bookings in the same 7-day week of target date
- * - 'month': bookings in target month/year
- * - 'semester': Semester 1 (Sep - Jan) or Semester 2 (Feb - Jun)
+ * Determine Vietnamese academic school year & semester for a given Date.
+ * Học kỳ 1: tháng 9 – tháng 1 (năm học Y–Y+1)
+ * Học kỳ 2: tháng 2 – tháng 8 (năm học Y–Y+1)
+ */
+export function getAcademicSemester(date: Date): {
+  schoolYearStart: number;
+  semester: 1 | 2;
+  label: string;
+} {
+  const m = date.getMonth(); // 0-11
+  const y = date.getFullYear();
+
+  if (m >= 8) {
+    return {
+      schoolYearStart: y,
+      semester: 1,
+      label: `Học kỳ 1 (${y}–${y + 1})`,
+    };
+  }
+  if (m === 0) {
+    return {
+      schoolYearStart: y - 1,
+      semester: 1,
+      label: `Học kỳ 1 (${y - 1}–${y})`,
+    };
+  }
+  return {
+    schoolYearStart: y - 1,
+    semester: 2,
+    label: `Học kỳ 2 (${y - 1}–${y})`,
+  };
+}
+
+/**
+ * Filter bookings by statistical timeframe (always excludes cancelled 'đã hủy' bookings):
+ * - 'tat_ca': all non-cancelled bookings
+ * - 'ngay': specific date (dd/mm/yyyy)
+ * - 'tuan': bookings in the same 7-day week (Mon-Sun) of target date
+ * - 'thang': bookings in target month/year
+ * - 'hoc_ky': Semester 1 or 2 of the SAME academic school year
  */
 export type FilterTimeframe = 'tat_ca' | 'ngay' | 'tuan' | 'thang' | 'hoc_ky';
 
@@ -372,11 +692,10 @@ export function filterBookingsByTimeframe(
   mode: FilterTimeframe,
   referenceDate: Date = new Date()
 ): DangKy[] {
-  if (mode === 'tat_ca') return bookings;
-
   const targetDateStr = formatDateToVN(referenceDate);
   const targetMonth = referenceDate.getMonth(); // 0-11
   const targetYear = referenceDate.getFullYear();
+  const targetAcademic = getAcademicSemester(referenceDate);
 
   // Find start and end of week (Monday to Sunday)
   const dayOfWeek = referenceDate.getDay();
@@ -391,6 +710,7 @@ export function filterBookingsByTimeframe(
 
   return bookings.filter((b) => {
     if (b.trangThai === 'đã hủy') return false;
+    if (mode === 'tat_ca') return true;
 
     const bDate = parseVNDate(b.ngaySuDung);
 
@@ -405,12 +725,11 @@ export function filterBookingsByTimeframe(
         return bDate.getMonth() === targetMonth && bDate.getFullYear() === targetYear;
 
       case 'hoc_ky': {
-        const m = bDate.getMonth(); // 0-11
-        // Semester 1: Sep - Jan (8, 9, 10, 11, 0)
-        // Semester 2: Feb - Jun (1, 2, 3, 4, 5)
-        const isTargetInSemester1 = targetMonth >= 8 || targetMonth === 0;
-        const isBDateInSemester1 = m >= 8 || m === 0;
-        return isTargetInSemester1 === isBDateInSemester1;
+        const bAcademic = getAcademicSemester(bDate);
+        return (
+          bAcademic.schoolYearStart === targetAcademic.schoolYearStart &&
+          bAcademic.semester === targetAcademic.semester
+        );
       }
 
       default:
@@ -420,18 +739,95 @@ export function filterBookingsByTimeframe(
 }
 
 /**
- * Calculate total hours used for a booking
+ * Calculate scheduled hours for a booking (for reference/planning)
  */
-export function getBookingHours(booking: DangKy): number {
+export function getScheduledBookingHours(booking: DangKy): number {
   if (booking.gioBatDau && booking.gioKetThuc) {
     const diffMin = timeStringToMinutes(booking.gioKetThuc) - timeStringToMinutes(booking.gioBatDau);
     return Math.max(0, diffMin / 60);
   }
-  // Standard school period is 45 minutes = 0.75 hours
   if (booking.tiet) {
-    return 0.75;
+    return 0.75; // 45 phút / tiết
   }
-  return 1;
+  return 0;
+}
+
+/**
+ * Calculate ACTUAL hours used for a booking:
+ * - 'đã đăng ký', 'đã hủy', 'quá hạn' -> 0 (not yet started / cancelled / no-show)
+ * - 'đã trả' -> actual hours from scheduled start (or check-in) to thoiGianTra (or scheduled duration if legacy)
+ * - 'đang sử dụng' -> elapsed hours up to `now` (or scheduled duration if date is in the past)
+ */
+export function getBookingHours(booking: DangKy, now: Date = new Date()): number {
+  if (
+    booking.trangThai === 'đã hủy' ||
+    booking.trangThai === 'quá hạn' ||
+    booking.trangThai === 'đã đăng ký'
+  ) {
+    return 0;
+  }
+
+  const scheduledHours = getScheduledBookingHours(booking);
+  const range = getBookingScheduledRange(booking);
+  const bookingDate = parseVNDate(booking.ngaySuDung);
+
+  if (booking.trangThai === 'đã trả') {
+    if (booking.thoiGianTra && range) {
+      const ret = parseVNDateTime(booking.thoiGianTra);
+      if (ret) {
+        const retDateOnly = new Date(ret.date.getFullYear(), ret.date.getMonth(), ret.date.getDate());
+        if (retDateOnly.getTime() === bookingDate.getTime()) {
+          if (ret.minutes >= range.startMin) {
+            return Math.max(0, (ret.minutes - range.startMin) / 60);
+          }
+          // Returned before scheduled start on the same day
+          const started = parseVNDateTime(booking.thoiGianBatDauThucTe);
+          if (started && ret.date >= started.date) {
+            return Math.max(0, (ret.date.getTime() - started.date.getTime()) / 3600000);
+          }
+          return 0;
+        }
+        // Returned on a different date (e.g. forgot & returned next day, or tested in advance)
+        const started = parseVNDateTime(booking.thoiGianBatDauThucTe);
+        if (started && ret.date >= started.date) {
+          const startedDateOnly = new Date(started.date.getFullYear(), started.date.getMonth(), started.date.getDate());
+          if (startedDateOnly.getTime() === retDateOnly.getTime()) {
+            return Math.max(0, (ret.date.getTime() - started.date.getTime()) / 3600000);
+          }
+        }
+        if (retDateOnly < bookingDate) return 0;
+      }
+    }
+    return scheduledHours;
+  }
+
+  // 'đang sử dụng'
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (bookingDate < today) {
+    return scheduledHours;
+  }
+  if (bookingDate.getTime() === today.getTime() && range) {
+    const nowMin = now.getHours() * 60 + now.getMinutes();
+    if (nowMin >= range.startMin) {
+      return Math.max(0, (nowMin - range.startMin) / 60);
+    }
+  }
+  const started = parseVNDateTime(booking.thoiGianBatDauThucTe);
+  if (started && now >= started.date) {
+    return Math.max(0, (now.getTime() - started.date.getTime()) / 3600000);
+  }
+  return 0;
+}
+
+/**
+ * Collected / realized revenue for a booking:
+ * Unstarted ('đã đăng ký'), cancelled ('đã hủy'), and no-show ('quá hạn') bookings do NOT count as realized revenue.
+ */
+export function getBookingCollectedRevenue(booking: DangKy): number {
+  if (booking.trangThai === 'đang sử dụng' || booking.trangThai === 'đã trả') {
+    return booking.tongTien || 0;
+  }
+  return 0;
 }
 
 /**
@@ -440,11 +836,15 @@ export function getBookingHours(booking: DangKy): number {
 export function aggregateStatistics(
   filteredBookings: DangKy[],
   areas: KhuVuc[],
-  users: NguoiDung[]
+  users: NguoiDung[],
+  now: Date = new Date()
 ) {
-  const areaStatsMap = new Map<string, { count: number; hours: number; revenue: number; inUse: number; returned: number }>();
+  const areaStatsMap = new Map<
+    string,
+    { count: number; hours: number; revenue: number; inUse: number; returned: number; pending: number; overdue: number }
+  >();
   areas.forEach((a) => {
-    areaStatsMap.set(a.id, { count: 0, hours: 0, revenue: 0, inUse: 0, returned: 0 });
+    areaStatsMap.set(a.id, { count: 0, hours: 0, revenue: 0, inUse: 0, returned: 0, pending: 0, overdue: 0 });
   });
 
   const userStatsMap = new Map<string, { count: number; hours: number; totalCost: number }>();
@@ -453,17 +853,21 @@ export function aggregateStatistics(
   });
 
   filteredBookings.forEach((b) => {
-    const hours = getBookingHours(b);
-    const cost = b.tongTien || 0;
+    if (b.trangThai === 'đã hủy') return;
+
+    const hours = getBookingHours(b, now);
+    const revenue = getBookingCollectedRevenue(b);
 
     // Facility aggregation
     const aStat = areaStatsMap.get(b.idKhuVuc);
     if (aStat) {
       aStat.count += 1;
       aStat.hours += hours;
-      aStat.revenue += cost;
+      aStat.revenue += revenue;
       if (b.trangThai === 'đang sử dụng') aStat.inUse += 1;
       if (b.trangThai === 'đã trả') aStat.returned += 1;
+      if (b.trangThai === 'đã đăng ký') aStat.pending += 1;
+      if (b.trangThai === 'quá hạn') aStat.overdue += 1;
     }
 
     // User aggregation
@@ -471,20 +875,30 @@ export function aggregateStatistics(
     if (uStat) {
       uStat.count += 1;
       uStat.hours += hours;
-      uStat.totalCost += cost;
+      uStat.totalCost += revenue;
     }
   });
 
   const areaStats = areas.map((a) => {
-    const stat = areaStatsMap.get(a.id) || { count: 0, hours: 0, revenue: 0, inUse: 0, returned: 0 };
+    const stat = areaStatsMap.get(a.id) || {
+      count: 0,
+      hours: 0,
+      revenue: 0,
+      inUse: 0,
+      returned: 0,
+      pending: 0,
+      overdue: 0,
+    };
     return {
       idKhuVuc: a.id,
       tenKhuVuc: a.tenKhuVuc,
       soLuotDangKy: stat.count,
-      tongThoiGianGio: Math.round(stat.hours * 10) / 10,
+      tongThoiGianGio: Math.round(stat.hours * 100) / 100,
       tongTienThu: stat.revenue,
       soLuotDangSuDung: stat.inUse,
       soLuotDaTra: stat.returned,
+      soLuotChoSuDung: stat.pending,
+      soLuotQuaHan: stat.overdue,
     };
   });
 
@@ -505,14 +919,16 @@ export function aggregateStatistics(
       tenVaiTro: roleName,
       lop: u.lop,
       soLuotDangKy: stat.count,
-      tongThoiGianGio: Math.round(stat.hours * 10) / 10,
+      tongThoiGianGio: Math.round(stat.hours * 100) / 100,
       tongChiPhi: stat.totalCost,
     };
   });
 
-  const totalBookings = filteredBookings.length;
-  const totalHours = Math.round(filteredBookings.reduce((sum, b) => sum + getBookingHours(b), 0) * 10) / 10;
-  const totalRevenue = filteredBookings.reduce((sum, b) => sum + (b.tongTien || 0), 0);
+  const activeNonCancelled = filteredBookings.filter((b) => b.trangThai !== 'đã hủy');
+  const totalBookings = activeNonCancelled.length;
+  const totalHours =
+    Math.round(activeNonCancelled.reduce((sum, b) => sum + getBookingHours(b, now), 0) * 100) / 100;
+  const totalRevenue = activeNonCancelled.reduce((sum, b) => sum + getBookingCollectedRevenue(b), 0);
 
   return {
     areaStats,

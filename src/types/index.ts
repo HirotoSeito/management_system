@@ -21,7 +21,7 @@ export interface NguoiDung {
   id: string;
   tenDangNhap: string;
   idVaiTro: VaiTroId;
-  matKhau: string;
+  matKhau?: string;
   hoTen: string;
   lop?: string; // Lớp của học sinh (khối 10, 11, 12: Toán, Lý, Hóa, Sinh, Tin, Anh 1, Anh 2, Văn); để trống với vai trò khác
   trangThai: TrangThaiNguoiDung;
@@ -45,7 +45,7 @@ export interface KhuVuc {
 export type ThuTrongTuan = 'Thứ 2' | 'Thứ 3' | 'Thứ 4' | 'Thứ 5' | 'Thứ 6' | 'Thứ 7' | 'Chủ nhật';
 export type BuoiTrongNgay = 'sáng' | 'chiều';
 export type TietHoc = 1 | 2 | 3 | 4 | 5;
-export type TrangThaiDangKy = 'đã đăng ký' | 'đang sử dụng' | 'đã trả' | 'đã hủy';
+export type TrangThaiDangKy = 'đã đăng ký' | 'đang sử dụng' | 'đã trả' | 'đã hủy' | 'quá hạn';
 
 export interface DangKy {
   id: string;
@@ -53,17 +53,19 @@ export interface DangKy {
   idKhuVuc: string;
   ngaySuDung: string; // dd/mm/yyyy
   thu: ThuTrongTuan;
-  buoi?: BuoiTrongNgay; // sáng, chiều (cho T2 - T6)
+  buoi?: BuoiTrongNgay; // chiều (cho T2 - T6)
   tiet?: TietHoc; // 1, 2, 3, 4, 5 (cho giáo viên T2 - T6)
-  lop?: string; // Lớp sử dụng (khối 10, 11, 12: Toán, Lý, Hóa, Sinh, Tin, Anh 1, Anh 2, Văn) - tự động trích xuất từ học sinh đại diện
-  nguoiDaiDienTen?: string; // Tên học sinh / người đại diện (tìm kiếm autocomplete Google-style)
-  nguoiDaiDienId?: string; // ID học sinh đại diện
-  gioBatDau?: string; // HH:mm (cho học sinh T7, CN: 07:00 - 10:00 hoặc 13:00 - 16:30)
-  gioKetThuc?: string; // HH:mm (cho học sinh T7, CN)
+  lop?: string; // Lớp sử dụng (khối 10, 11, 12: Toán, Lý, Hóa, Sinh, Tin, Anh 1, Anh 2, Văn)
+  nguoiDaiDienTen?: string; // Tên học sinh thuê cuối tuần (nếu có)
+  nguoiDaiDienId?: string; // ID học sinh thuê cuối tuần (nếu có)
+  gioBatDau?: string; // HH:mm (cho T7, CN: 07:00 - 10:00 hoặc 13:00 - 16:30)
+  gioKetThuc?: string; // HH:mm (cho T7, CN)
   trangThai: TrangThaiDangKy;
-  thoiGianTra?: string | null; // Thời điểm thực tế trả khu vực (VD: "10:35 18/10/2026")
+  thoiGianBatDauThucTe?: string | null; // Thời điểm thực tế nhận sân (VD: "13:32 18/10/2026")
+  thoiGianTra?: string | null; // Thời điểm thực tế trả khu vực (VD: "14:45 18/10/2026")
   mucDichSuDung?: string; // VD: Giảng dạy môn Bóng đá lớp 11 Toán, Tập luyện CLB
-  tongTien?: number; // Giá thuê tính theo giờ cho học sinh
+  tongTien?: number; // Giá thuê tính theo giờ cho học sinh (giáo viên/BGH/Admin = 0)
+  ghiChuHeThong?: string; // Ghi chú tự động (trả sớm, tự động hủy do bảo trì, quá giờ không nhận sân...)
 }
 
 // Aggregated statistical summaries
@@ -75,6 +77,8 @@ export interface ThongKeKhuVuc {
   tongTienThu: number;
   soLuotDangSuDung: number;
   soLuotDaTra: number;
+  soLuotChoSuDung: number;
+  soLuotQuaHan: number;
 }
 
 export interface ThongKeNguoiDung {

@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
-import * as XLSX from 'xlsx';
-import { NguoiDung, VaiTroId, TrangThaiNguoiDung } from '../types/index.ts';
+import type { NguoiDung, VaiTroId, DangKy } from '../types/index.ts';
 import {
   Users,
   UserPlus,
@@ -8,7 +7,6 @@ import {
   Unlock,
   Trash2,
   Search,
-  CheckCircle2,
   X,
   Shield,
   Award,
@@ -18,25 +16,41 @@ import {
   FileSpreadsheet,
   Download,
   Upload,
-  ShieldCheck,
   Check,
 } from 'lucide-react';
-import { formatDateToVN, DANH_SACH_LOP_CHUYEN } from '../utils/bookingRules.ts';
+import { DANH_SACH_LOP_CHUYEN } from '../utils/bookingRules.ts';
+import {
+  downloadUserTemplateExcel,
+  exportUsersExcel,
+  parseUsersFromExcelBuffer,
+} from '../utils/exportExcel.ts';
 
 interface AdminUserManagementProps {
   users: NguoiDung[];
-  onAddUser: (newUser: NguoiDung) => void;
-  onAddBatchUsers?: (newUsers: NguoiDung[]) => void;
-  onToggleUserStatus: (userId: string) => void;
-  onDeleteUser: (userId: string) => void;
+  bookings: DangKy[];
+  onAddUser: (newUser: {
+    tenDangNhap: string;
+    matKhau: string;
+    hoTen: string;
+    idVaiTro: VaiTroId;
+    lop?: string;
+    soDienThoai?: string;
+    email?: string;
+  }) => Promise<void>;
+  onAddBatchUsers: (newUsers: Array<NguoiDung & { matKhau: string }>) => Promise<void>;
+  onToggleUserStatus: (userId: string) => Promise<void>;
+  onDeleteUser: (userId: string) => Promise<void>;
+  onNotify: (msg: string, type?: 'success' | 'info' | 'error') => void;
 }
 
 export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
   users,
+  bookings,
   onAddUser,
   onAddBatchUsers,
   onToggleUserStatus,
   onDeleteUser,
+  onNotify,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
@@ -46,7 +60,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
   // Excel import states
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showImportPreviewModal, setShowImportPreviewModal] = useState(false);
-  const [importedParsedUsers, setImportedParsedUsers] = useState<NguoiDung[]>([]);
+  const [importedParsedUsers, setImportedParsedUsers] = useState<Array<NguoiDung & { matKhau: string }>>([]);
   const [importErrors, setImportErrors] = useState<string[]>([]);
 
   // Form states for single new user
@@ -54,7 +68,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
   const [matKhau, setMatKhau] = useState('');
   const [hoTen, setHoTen] = useState('');
   const [idVaiTro, setIdVaiTro] = useState<VaiTroId>('hoc_sinh');
-  const [lop, setLop] = useState('');
+  const [lop, setLop] = useState(DANH_SACH_LOP_CHUYEN[0]);
   const [soDienThoai, setSoDienThoai] = useState('');
   const [formError, setFormError] = useState('');
 
@@ -70,7 +84,10 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
     return true;
   });
 
-  const handleCreateUser = (e: React.FormEvent) => {
+  const getUserHistoryCount = (userId: string) =>
+    bookings.filter((b) => b.idNguoiDung === userId).length;
+
+  const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError('');
 
@@ -80,206 +97,63 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
       return;
     }
 
-    // Check duplicate username
     if (users.some((u) => u.tenDangNhap.toLowerCase() === cleanUsername)) {
       setFormError(`Tên đăng nhập "${cleanUsername}" đã tồn tại. Vui lòng chọn tên khác.`);
       return;
     }
 
-    const newUser: NguoiDung = {
-      id: `u_${Date.now().toString().slice(-6)}`,
-      tenDangNhap: cleanUsername,
-      matKhau: matKhau,
-      hoTen: hoTen.trim(),
-      idVaiTro: idVaiTro,
-      lop: idVaiTro === 'hoc_sinh' ? lop.trim() : undefined,
-      soDienThoai: soDienThoai.trim() || undefined,
-      trangThai: 'hoạt động',
-      ngayTao: formatDateToVN(new Date()),
-    };
+    const effectiveLop = idVaiTro === 'hoc_sinh' ? lop || DANH_SACH_LOP_CHUYEN[0] : undefined;
+    if (idVaiTro === 'hoc_sinh' && (!effectiveLop || !DANH_SACH_LOP_CHUYEN.includes(effectiveLop))) {
+      setFormError('Vui lòng chọn đúng 1 trong 24 lớp chuyên hợp lệ.');
+      return;
+    }
 
-    onAddUser(newUser);
-    setShowAddModal(false);
-    // Reset form
-    setTenDangNhap('');
-    setMatKhau('');
-    setHoTen('');
-    setIdVaiTro('hoc_sinh');
-    setLop('');
-    setSoDienThoai('');
+    try {
+      await onAddUser({
+        tenDangNhap: cleanUsername,
+        matKhau,
+        hoTen: hoTen.trim(),
+        idVaiTro,
+        lop: effectiveLop,
+        soDienThoai: soDienThoai.trim() || undefined,
+      });
+
+      setShowAddModal(false);
+      setTenDangNhap('');
+      setMatKhau('');
+      setHoTen('');
+      setIdVaiTro('hoc_sinh');
+      setLop(DANH_SACH_LOP_CHUYEN[0]);
+      setSoDienThoai('');
+    } catch (err: unknown) {
+      setFormError(err instanceof Error ? err.message : 'Không thể tạo tài khoản.');
+    }
   };
 
-  // 1. Download Excel Template
-  const handleDownloadTemplate = () => {
-    const templateData = [
-      {
-        'Tên đăng nhập': 'hs_minh_tri',
-        'Mật khẩu': '123456',
-        'Họ và tên': 'Nguyễn Minh Trí',
-        'Vai trò (Học sinh / Giáo viên / Ban giám hiệu / Quản trị viên)': 'Học sinh',
-        'Lớp chuyên (Nếu là học sinh: 10 Toán, 11 Lý,...)': '11 Toán',
-        'Số điện thoại': '0912345678',
-        'Email': 'tri.nm@lequydon-nt.edu.vn',
-      },
-      {
-        'Tên đăng nhập': 'gv_thanh',
-        'Mật khẩu': '123456',
-        'Họ và tên': 'Thầy Trần Văn Thành',
-        'Vai trò (Học sinh / Giáo viên / Ban giám hiệu / Quản trị viên)': 'Giáo viên',
-        'Lớp chuyên (Nếu là học sinh: 10 Toán, 11 Lý,...)': '',
-        'Số điện thoại': '0987654321',
-        'Email': 'thanhtv@lequydon-nt.edu.vn',
-      },
-    ];
-
-    const worksheet = XLSX.utils.json_to_sheet(templateData);
-    // Column widths
-    worksheet['!cols'] = [
-      { wch: 18 },
-      { wch: 14 },
-      { wch: 26 },
-      { wch: 32 },
-      { wch: 24 },
-      { wch: 16 },
-      { wch: 28 },
-    ];
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Danh_Sach_Mau');
-    XLSX.writeFile(workbook, 'Mau_Nhap_Tai_Khoan_LeQuyDon.xlsx');
-  };
-
-  // 2. Export Current Users to Excel
-  const handleExportUsersExcel = () => {
-    const dataToExport = users.map((u, idx) => ({
-      'STT': idx + 1,
-      'Mã ID': u.id,
-      'Tên đăng nhập': u.tenDangNhap,
-      'Họ và tên': u.hoTen,
-      'Vai trò':
-        u.idVaiTro === 'admin'
-          ? 'Quản trị viên'
-          : u.idVaiTro === 'bgh'
-          ? 'Ban giám hiệu'
-          : u.idVaiTro === 'giao_vien'
-          ? 'Giáo viên'
-          : 'Học sinh',
-      'Lớp': u.lop || '—',
-      'Trạng thái': u.trangThai,
-      'Ngày tạo': u.ngayTao,
-      'Số điện thoại': u.soDienThoai || '—',
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Nguoi_Dung');
-    XLSX.writeFile(workbook, `Danh_Sach_Nguoi_Dung_LQD_${formatDateToVN(new Date()).replace(/\//g, '-')}.xlsx`);
-  };
-
-  // 3. Handle File Upload
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const bstr = evt.target?.result;
-        const workbook = XLSX.read(bstr, { type: 'binary' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        const rawJson: any[] = XLSX.utils.sheet_to_json(worksheet);
-
-        if (!rawJson || rawJson.length === 0) {
-          alert('File Excel trống hoặc không đúng định dạng!');
-          return;
-        }
-
-        const validParsed: NguoiDung[] = [];
-        const errors: string[] = [];
-        const seenUsernames = new Set(users.map((u) => u.tenDangNhap.toLowerCase()));
-
-        rawJson.forEach((row, index) => {
-          const rowNum = index + 2; // header is row 1
-          const rawUsername =
-            row['Tên đăng nhập'] || row['tenDangNhap'] || row['Username'] || row['taiKhoan'] || '';
-          const rawPassword = row['Mật khẩu'] || row['matKhau'] || row['Password'] || '123456';
-          const rawFullName = row['Họ và tên'] || row['hoTen'] || row['FullName'] || row['ten'] || '';
-          const rawRole =
-            row['Vai trò (Học sinh / Giáo viên / Ban giám hiệu / Quản trị viên / Bảo vệ)'] ||
-            row['Vai trò'] ||
-            row['idVaiTro'] ||
-            row['Role'] ||
-            'Học sinh';
-          const rawLop = row['Lớp chuyên (Nếu là học sinh: 10 Toán, 11 Lý,...)'] || row['Lớp'] || row['lop'] || '';
-          const rawPhone = row['Số điện thoại'] || row['soDienThoai'] || row['Phone'] || '';
-          const rawEmail = row['Email'] || row['email'] || '';
-
-          const username = String(rawUsername).trim().toLowerCase();
-          const fullName = String(rawFullName).trim();
-          const password = String(rawPassword).trim();
-
-          if (!username || !fullName) {
-            errors.push(`Dòng ${rowNum}: Thiếu tên đăng nhập hoặc họ và tên.`);
-            return;
-          }
-
-          if (seenUsernames.has(username)) {
-            errors.push(`Dòng ${rowNum}: Tên đăng nhập "@${username}" đã tồn tại trong hệ thống hoặc bị trùng.`);
-            return;
-          }
-
-          // Map role
-          let roleId: VaiTroId = 'hoc_sinh';
-          const roleNormalized = String(rawRole).toLowerCase();
-          if (roleNormalized.includes('quản trị') || roleNormalized.includes('admin')) {
-            roleId = 'admin';
-          } else if (roleNormalized.includes('giám hiệu') || roleNormalized.includes('bgh')) {
-            roleId = 'bgh';
-          } else if (roleNormalized.includes('giáo viên') || roleNormalized.includes('gv')) {
-            roleId = 'giao_vien';
-          } else {
-            roleId = 'hoc_sinh';
-          }
-
-          seenUsernames.add(username);
-
-          validParsed.push({
-            id: `u_imp_${Date.now().toString().slice(-4)}_${index}`,
-            tenDangNhap: username,
-            matKhau: password || '123456',
-            hoTen: fullName,
-            idVaiTro: roleId,
-            lop: roleId === 'hoc_sinh' ? String(rawLop).trim() || undefined : undefined,
-            soDienThoai: rawPhone ? String(rawPhone).trim() : undefined,
-            email: rawEmail ? String(rawEmail).trim() : undefined,
-            trangThai: 'hoạt động',
-            ngayTao: formatDateToVN(new Date()),
-          });
-        });
-
-        setImportedParsedUsers(validParsed);
-        setImportErrors(errors);
-        setShowImportPreviewModal(true);
-      } catch (err) {
-        console.error(err);
-        alert('Lỗi đọc file Excel. Vui lòng kiểm tra lại file định dạng .xlsx!');
-      } finally {
-        if (fileInputRef.current) fileInputRef.current.value = '';
+    try {
+      const buffer = await file.arrayBuffer();
+      const { validUsers, errors } = await parseUsersFromExcelBuffer(buffer, users);
+      if (validUsers.length === 0 && errors.length > 0) {
+        onNotify(errors[0], 'error');
       }
-    };
-    reader.readAsBinaryString(file);
+      setImportedParsedUsers(validUsers);
+      setImportErrors(errors);
+      setShowImportPreviewModal(true);
+    } catch (err) {
+      console.error(err);
+      onNotify('Lỗi đọc file Excel. Vui lòng kiểm tra lại file định dạng .xlsx chuẩn!', 'error');
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
-  const handleConfirmImport = () => {
+  const handleConfirmImport = async () => {
     if (importedParsedUsers.length === 0) return;
-
-    if (onAddBatchUsers) {
-      onAddBatchUsers(importedParsedUsers);
-    } else {
-      importedParsedUsers.forEach((u) => onAddUser(u));
-    }
-
+    await onAddBatchUsers(importedParsedUsers);
     setShowImportPreviewModal(false);
     setImportedParsedUsers([]);
     setImportErrors([]);
@@ -300,7 +174,6 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Title & Actions */}
       <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
@@ -309,23 +182,21 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
               Quản Trị Người Dùng & Phân Quyền
             </h1>
             <p className="text-xs text-slate-500 mt-1">
-              Dành cho Quản trị viên: Nhập hàng loạt từ Excel, cấp tài khoản, phân quyền (Quản trị, BGH, Giáo viên, Học sinh), khóa và xóa tài khoản.
+              Dành cho Quản trị viên: Nhập hàng loạt từ Excel (.xlsx), cấp tài khoản, phân quyền (Quản trị, BGH, Giáo viên, Học sinh), khóa và xóa tài khoản.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            {/* Hidden file input */}
             <input
               type="file"
               ref={fileInputRef}
               onChange={handleFileUpload}
-              accept=".xlsx, .xls"
+              accept=".xlsx"
               className="hidden"
             />
 
-            {/* Template Download */}
             <button
-              onClick={handleDownloadTemplate}
+              onClick={() => downloadUserTemplateExcel()}
               className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
               title="Tải file mẫu Excel chuẩn để nhập"
             >
@@ -333,7 +204,6 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
               Tải file mẫu Excel
             </button>
 
-            {/* Import Excel */}
             <button
               onClick={() => fileInputRef.current?.click()}
               className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg transition-colors"
@@ -342,16 +212,14 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
               Nhập từ file Excel
             </button>
 
-            {/* Export Excel */}
             <button
-              onClick={handleExportUsersExcel}
+              onClick={() => exportUsersExcel(users)}
               className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors"
             >
               <Upload className="w-3.5 h-3.5 text-slate-500" />
               Xuất Excel
             </button>
 
-            {/* Manual Add User */}
             <button
               onClick={() => setShowAddModal(true)}
               className="inline-flex items-center justify-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 rounded-lg shadow-xs transition-colors shrink-0"
@@ -362,7 +230,6 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
           </div>
         </div>
 
-        {/* Search & Filter Toolbar */}
         <div className="mt-4 pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-3 gap-3 items-center">
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -419,7 +286,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                   <tr key={user.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="py-3 px-4 font-mono font-medium text-slate-800">
                       <div>@{user.tenDangNhap}</div>
-                      <div className="text-[10px] text-slate-400 font-sans">{user.id}</div>
+                      <div className="text-[10px] text-slate-400 font-sans truncate max-w-[140px]">{user.id}</div>
                     </td>
                     <td className="py-3 px-4 font-bold text-slate-900">
                       {user.hoTen}
@@ -447,30 +314,30 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                     </td>
                     <td className="py-3 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
-                        {/* Lock / Unlock button */}
-                        <button
-                          type="button"
-                          onClick={() => onToggleUserStatus(user.id)}
-                          title={isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}
-                          className={`p-1.5 rounded-lg border transition-colors ${
-                            isLocked
-                              ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200'
-                              : 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-200'
-                          }`}
-                        >
-                          {isLocked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-                        </button>
-
-                        {/* Delete button (except main admin) */}
                         {user.id !== 'u_admin' && (
-                          <button
-                            type="button"
-                            onClick={() => setDeleteConfirmId(user.id)}
-                            title="Xóa tài khoản"
-                            className="p-1.5 rounded-lg text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => onToggleUserStatus(user.id)}
+                              title={isLocked ? 'Mở khóa tài khoản' : 'Khóa tài khoản'}
+                              className={`p-1.5 rounded-lg border transition-colors ${
+                                isLocked
+                                  ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border-emerald-200'
+                                  : 'text-amber-700 bg-amber-50 hover:bg-amber-100 border-amber-200'
+                              }`}
+                            >
+                              {isLocked ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => setDeleteConfirmId(user.id)}
+                              title="Xóa tài khoản"
+                              className="p-1.5 rounded-lg text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition-colors"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </>
                         )}
                       </div>
                     </td>
@@ -670,7 +537,7 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
                     Lớp chuyên của học sinh <span className="text-rose-500">*</span>
                   </label>
                   <select
-                    value={lop || DANH_SACH_LOP_CHUYEN[0]}
+                    value={lop}
                     onChange={(e) => setLop(e.target.value)}
                     className="w-full text-xs font-semibold border border-slate-300 rounded-lg px-3 py-2 bg-slate-50 focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-slate-500/20"
                   >
@@ -726,22 +593,29 @@ export const AdminUserManagement: React.FC<AdminUserManagementProps> = ({
             <h3 className="text-base font-bold text-slate-900">
               Xác Nhận Xóa Tài Khoản Người Dùng
             </h3>
-            <p className="text-xs text-slate-600 mt-2">
-              Bạn có chắc chắn muốn xóa tài khoản này khỏi hệ thống? Thao tác này không thể hoàn tác.
-            </p>
+            {getUserHistoryCount(deleteConfirmId) > 0 ? (
+              <p className="text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-lg p-3 mt-2 leading-relaxed">
+                Tài khoản này đã có <strong>{getUserHistoryCount(deleteConfirmId)} lượt mượn/thuê sân</strong> trong lịch sử. Do ràng buộc khóa ngoại (Foreign Key), hệ thống sẽ từ chối xóa — bạn nên dùng nút <strong>"Khóa tài khoản"</strong> để vô hiệu hóa đăng nhập.
+              </p>
+            ) : (
+              <p className="text-xs text-slate-600 mt-2">
+                Bạn có chắc chắn muốn xóa tài khoản này khỏi hệ thống? Thao tác này không thể hoàn tác.
+              </p>
+            )}
             <div className="mt-5 flex items-center justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setDeleteConfirmId(null)}
                 className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-900 rounded-lg"
               >
-                Hủy bỏ
+                Đóng
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  onDeleteUser(deleteConfirmId);
+                onClick={async () => {
+                  const id = deleteConfirmId;
                   setDeleteConfirmId(null);
+                  await onDeleteUser(id);
                 }}
                 className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg shadow-xs"
               >
